@@ -1,0 +1,18 @@
+{
+  "short_name": "Swaranidhi",
+  "name": "Swaranidhi — AI Voice Inventory System",
+  "description": "AI-Powered Voice-Based Inventory Management System for Small Businesses (Speak. Manage. Grow.)",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/"
+}
