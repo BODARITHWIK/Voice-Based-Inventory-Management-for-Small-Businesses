@@ -45,7 +45,7 @@ import { useSimpleMode } from '../context/SimpleModeContext';
 
 const Dashboard = ({ onTriggerVoiceConfirm, showToast }) => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, selectedLanguage, selectedLocale } = useLanguage();
   const { simpleMode } = useSimpleMode();
 
   const [stats, setStats] = useState(null);
@@ -211,14 +211,16 @@ const Dashboard = ({ onTriggerVoiceConfirm, showToast }) => {
             >
               👋 {t('voice.speakToAssistant')}
             </Typography>
-            <Typography variant="body1" sx={{ color: '#047857', maxWidth: 540, fontSize: simpleMode ? '1.1rem' : '0.95rem' }}>
-              Speak naturally in English, Telugu, or Hindi. Swaranidhi will understand and take care of your shop.
+            <Typography variant="body1" sx={{ color: '#047857', maxWidth: 580, fontSize: simpleMode ? '1.1rem' : '0.95rem' }}>
+              {t('dashboard.heroDesc')}
             </Typography>
           </Stack>
 
           {/* Large Interactive Voice Assistant Component */}
           <VoiceButton
             variant="largeCard"
+            language={selectedLanguage}
+            locale={selectedLocale}
             onCommandResult={handleVoiceCommand}
           />
         </CardContent>
@@ -237,12 +239,12 @@ const Dashboard = ({ onTriggerVoiceConfirm, showToast }) => {
               }
               subheader={
                 <Typography variant="caption" sx={{ color: '#64748b' }}>
-                  Last 7 days sales velocity (INR ₹)
+                  {t('dashboard.salesOverviewSub')}
                 </Typography>
               }
               action={
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Chip label="₹50,850 this week" size="small" sx={{ backgroundColor: '#ecfdf5', color: '#065f46', fontWeight: 700 }} />
+                  <Chip label={t('dashboard.weekSales', { amount: '50,850' })} size="small" sx={{ backgroundColor: '#ecfdf5', color: '#065f46', fontWeight: 700 }} />
                 </Stack>
               }
             />
@@ -296,7 +298,7 @@ const Dashboard = ({ onTriggerVoiceConfirm, showToast }) => {
               }
               subheader={
                 <Typography variant="caption" sx={{ color: '#64748b' }}>
-                  Stock status health
+                  {t('dashboard.stockHealth')}
                 </Typography>
               }
             />
@@ -352,12 +354,12 @@ const Dashboard = ({ onTriggerVoiceConfirm, showToast }) => {
             <CardHeader
               title={
                 <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
-                  Recent Activity
+                  {t('dashboard.recentActivity')}
                 </Typography>
               }
               subheader={
                 <Typography variant="caption" sx={{ color: '#64748b' }}>
-                  Latest customer sales, supplier orders, and adjustments
+                  {t('dashboard.recentActivitySub')}
                 </Typography>
               }
               action={

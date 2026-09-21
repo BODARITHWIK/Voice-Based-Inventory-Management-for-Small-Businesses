@@ -40,6 +40,9 @@ public class Supplier {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Version
+    private Long version;
+
     public Supplier() {}
 
     public Supplier(Business business, String name, String phone, String email, String address, String gstin, BigDecimal openingBalance) {
@@ -87,4 +90,7 @@ public class Supplier {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }

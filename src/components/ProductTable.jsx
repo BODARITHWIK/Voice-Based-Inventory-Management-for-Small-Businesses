@@ -27,6 +27,11 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useLanguage } from '../context/LanguageContext';
 import { useSimpleMode } from '../context/SimpleModeContext';
+import {
+  getLocalizedProduct,
+  getLocalizedCategory,
+  getLocalizedUnit,
+} from '../utils/productLocalization';
 
 const ProductTable = ({
   products = [],
@@ -35,7 +40,7 @@ const ProductTable = ({
   onView,
   categories = [],
 }) => {
-  const { t } = useLanguage();
+  const { t, selectedLanguage } = useLanguage();
   const { simpleMode } = useSimpleMode();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,10 +52,14 @@ const ProductTable = ({
   // Filter products based on search and selected filters
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      const localizedName = getLocalizedProduct(p.name, selectedLanguage);
+      const localizedCat = getLocalizedCategory(p.category, selectedLanguage);
       const matchesSearch =
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        localizedName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase()));
+        (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (localizedCat && localizedCat.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesCategory =
         categoryFilter === 'ALL' || p.category === categoryFilter;
@@ -63,7 +72,7 @@ const ProductTable = ({
 
       return matchesSearch && matchesCategory && matchesStatus;
     });
-  }, [products, searchTerm, categoryFilter, statusFilter]);
+  }, [products, searchTerm, categoryFilter, statusFilter, selectedLanguage]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -91,6 +100,7 @@ const ProductTable = ({
           />
         );
       case 'Low Stock':
+      case 'Running Low':
         return (
           <Chip
             size="small"
@@ -174,7 +184,7 @@ const ProductTable = ({
               <MenuItem value="ALL">{t('products.allCategories')}</MenuItem>
               {categories.map((cat) => (
                 <MenuItem key={cat} value={cat}>
-                  {cat}
+                  {getLocalizedCategory(cat, selectedLanguage)}
                 </MenuItem>
               ))}
             </Select>
@@ -229,7 +239,7 @@ const ProductTable = ({
               <TableRow>
                 <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
                   <Typography variant="body1" sx={{ color: '#64748b', fontWeight: 600 }}>
-                    I couldn't find that item. Try searching again.
+                    {t('products.noItemsFound') || "I couldn't find that item. Try searching again."}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -244,11 +254,18 @@ const ProductTable = ({
                   }}
                 >
                   <TableCell sx={{ fontWeight: 700, color: '#0f172a', fontSize: simpleMode ? '1rem' : '0.9rem' }}>
-                    {row.name}
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                      {getLocalizedProduct(row.name, selectedLanguage)}
+                    </Typography>
+                    {selectedLanguage !== 'en' && getLocalizedProduct(row.name, selectedLanguage) !== row.name && (
+                      <Typography variant="caption" sx={{ color: '#64748b', display: 'block', fontSize: '0.72rem', fontWeight: 500 }}>
+                        {row.name}
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" sx={{ color: '#475569' }}>
-                      {row.category}
+                      {getLocalizedCategory(row.category, selectedLanguage)}
                     </Typography>
                   </TableCell>
                   <TableCell sx={{ color: '#64748b', fontFamily: 'monospace', fontSize: '0.8rem' }}>
@@ -257,7 +274,9 @@ const ProductTable = ({
                   <TableCell align="right" sx={{ fontWeight: 800, color: row.stock === 0 ? '#dc2626' : row.stock <= row.minStock ? '#d97706' : '#0f172a', fontSize: simpleMode ? '1.05rem' : '0.9rem' }}>
                     {row.stock}
                   </TableCell>
-                  <TableCell sx={{ color: '#64748b' }}>{row.unit}</TableCell>
+                  <TableCell sx={{ color: '#64748b' }}>
+                    {getLocalizedUnit(row.unit, selectedLanguage)}
+                  </TableCell>
                   <TableCell align="right" sx={{ color: '#64748b' }}>
                     ₹{row.purchasePrice}
                   </TableCell>
@@ -268,21 +287,21 @@ const ProductTable = ({
                   <TableCell align="center">
                     <Stack direction="row" spacing={0.5} justifyContent="center">
                       {onView && (
-                        <Tooltip title="View Details">
+                        <Tooltip title={t('products.itemDetails') || 'View Details'}>
                           <IconButton size="small" onClick={() => onView(row)} sx={{ color: '#64748b' }}>
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       )}
                       {onEdit && (
-                        <Tooltip title="Edit Item">
+                        <Tooltip title={t('products.editItem') || 'Edit Item'}>
                           <IconButton size="small" onClick={() => onEdit(row)} sx={{ color: '#2563eb' }}>
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       )}
                       {onDelete && (
-                        <Tooltip title="Remove Item">
+                        <Tooltip title={t('confirm.destructiveTitle') || 'Remove Item'}>
                           <IconButton size="small" onClick={() => onDelete(row)} sx={{ color: '#ef4444' }}>
                             <DeleteOutlinedIcon fontSize="small" />
                           </IconButton>

@@ -1,20 +1,44 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getTranslation, detectLanguage, supportedLanguages } from '../i18n';
-import { INDIAN_LANGUAGES, getLanguageByCode } from '../services/indianLanguages';
+import {
+  INDIAN_LANGUAGES,
+  getLanguageByCodeOrLocale,
+  getLanguageLocale,
+  getLanguageCode,
+} from '../config/languages';
+import axios from 'axios';
+import { resolveApiBaseUrl } from '../services/api';
 
+const BASE_URL = resolveApiBaseUrl();
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  // Layer 1: UI Language
+  // Layer 1: UI Language Code (e.g. 'ta', 'te', 'hi', 'en')
   const [uiLanguage, setUiLanguageState] = useState(() => {
     try {
-      return localStorage.getItem('swaranidhi_ui_language') || localStorage.getItem('swaranidhi_language') || 'en';
+      return (
+        localStorage.getItem('swaranidhi_ui_language') ||
+        localStorage.getItem('swaranidhi_language') ||
+        'en'
+      );
     } catch (e) {
       return 'en';
     }
   });
 
-  // Layer 2: Speech & Text Input Understanding Language
+  // Layer 2: Selected Exact Locale (e.g. 'ta-IN', 'kn-IN', 'hi-IN', 'en-IN')
+  const [selectedLocale, setSelectedLocaleState] = useState(() => {
+    try {
+      const savedLocale = localStorage.getItem('swaranidhi_locale');
+      if (savedLocale) return savedLocale;
+      const savedLang = localStorage.getItem('swaranidhi_ui_language') || 'en';
+      return getLanguageLocale(savedLang);
+    } catch (e) {
+      return 'en-IN';
+    }
+  });
+
+  // Layer 3: Speech & Text Input Understanding Language (locale or 'auto')
   const [inputLanguage, setInputLanguageState] = useState(() => {
     try {
       return localStorage.getItem('swaranidhi_input_language') || 'auto';
@@ -23,7 +47,7 @@ export const LanguageProvider = ({ children }) => {
     }
   });
 
-  // Layer 3: System Response Language
+  // Layer 4: System Response Language
   const [responseLanguage, setResponseLanguageState] = useState(() => {
     try {
       return localStorage.getItem('swaranidhi_response_language') || 'same_as_input';
@@ -31,6 +55,9 @@ export const LanguageProvider = ({ children }) => {
       return 'same_as_input';
     }
   });
+
+  // Cloud/Backend Language Capabilities
+  const [backendCapabilities, setBackendCapabilities] = useState([]);
 
   // Voice & AI Config
   const [voiceResponseEnabled, setVoiceResponseEnabled] = useState(() => {
@@ -49,22 +76,56 @@ export const LanguageProvider = ({ children }) => {
     return localStorage.getItem('swaranidhi_dev_mode') === 'true';
   });
 
-  // UI Effective Language
-  const effectiveLang = uiLanguage === 'auto' ? detectLanguage() : (uiLanguage.split('-')[0] || 'en');
+  // Load backend capabilities on mount
+  useEffect(() => {
+    const loadBackendCapabilities = async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/voice/languages`, { timeout: 3000 });
+        const list = res.data?.data || res.data || [];
+        if (Array.isArray(list)) {
+          setBackendCapabilities(list);
+        }
+      } catch (e) {
+        // Backend offline — rely on local browser capability declarations
+      }
+    };
+    loadBackendCapabilities();
+  }, []);
+
+  // UI Effective Language Code for Translations
+  const effectiveLang = uiLanguage === 'auto' ? detectLanguage() : getLanguageCode(uiLanguage);
 
   // Persistence helpers
-  const setUiLanguage = (lang) => {
-    setUiLanguageState(lang);
+  const setUiLanguage = (langCodeOrLocale) => {
+    const code = getLanguageCode(langCodeOrLocale);
+    const locale = getLanguageLocale(langCodeOrLocale);
+    setUiLanguageState(code);
+    setSelectedLocaleState(locale);
     try {
-      localStorage.setItem('swaranidhi_ui_language', lang);
-      localStorage.setItem('swaranidhi_language', lang);
+      localStorage.setItem('swaranidhi_ui_language', code);
+      localStorage.setItem('swaranidhi_language', code);
+      localStorage.setItem('swaranidhi_locale', locale);
     } catch (e) {}
   };
 
-  const setInputLanguage = (lang) => {
-    setInputLanguageState(lang);
+  const setSelectedLanguageAndLocale = (code, locale) => {
+    const safeCode = code || getLanguageCode(locale);
+    const safeLocale = locale || getLanguageLocale(code);
+    setUiLanguageState(safeCode);
+    setSelectedLocaleState(safeLocale);
+    setInputLanguageState(safeLocale);
     try {
-      localStorage.setItem('swaranidhi_input_language', lang);
+      localStorage.setItem('swaranidhi_ui_language', safeCode);
+      localStorage.setItem('swaranidhi_language', safeCode);
+      localStorage.setItem('swaranidhi_locale', safeLocale);
+      localStorage.setItem('swaranidhi_input_language', safeLocale);
+    } catch (e) {}
+  };
+
+  const setInputLanguage = (localeOrAuto) => {
+    setInputLanguageState(localeOrAuto);
+    try {
+      localStorage.setItem('swaranidhi_input_language', localeOrAuto);
     } catch (e) {}
   };
 
@@ -116,21 +177,26 @@ export const LanguageProvider = ({ children }) => {
     return getTranslation(effectiveLang, keyPath, params);
   };
 
-  // BCP 47 Speech Recognition / Synthesis language code
-  const getSpeechLangCode = (overrideLang = null) => {
-    const target = overrideLang || inputLanguage;
-    if (target === 'auto') {
-      const langObj = getLanguageByCode(effectiveLang);
-      return langObj ? langObj.code : 'en-IN';
+  // Resolve dynamic BCP-47 Speech Recognition locale
+  const getSpeechLangCode = (overrideLocaleOrCode = null) => {
+    if (overrideLocaleOrCode && overrideLocaleOrCode !== 'auto') {
+      return getLanguageLocale(overrideLocaleOrCode);
     }
-    const langObj = getLanguageByCode(target);
-    return langObj ? langObj.code : 'en-IN';
+    if (inputLanguage && inputLanguage !== 'auto') {
+      return getLanguageLocale(inputLanguage);
+    }
+    return selectedLocale || getLanguageLocale(effectiveLang);
   };
 
   return (
     <LanguageContext.Provider
       value={{
-        // 3 Independent Layers
+        // Core Selection State
+        selectedLanguage: effectiveLang,
+        selectedLocale,
+        setSelectedLanguageAndLocale,
+
+        // Layers
         uiLanguage,
         setUiLanguage,
         inputLanguage,
@@ -148,14 +214,16 @@ export const LanguageProvider = ({ children }) => {
         developerMode,
         toggleDeveloperMode,
 
-        // Backward compatibility
-        language: uiLanguage,
+        // Backend capabilities
+        backendCapabilities,
+
+        // Helpers
         effectiveLang,
         setLanguage,
         t,
+        getSpeechLangCode,
         supportedLanguages,
         indianLanguages: INDIAN_LANGUAGES,
-        getSpeechLangCode,
       }}
     >
       {children}
@@ -169,11 +237,6 @@ export const useLanguage = () => {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
-};
-
-export const useTranslation = () => {
-  const { t, effectiveLang, language, setLanguage } = useLanguage();
-  return { t, effectiveLang, language, setLanguage };
 };
 
 export default LanguageContext;

@@ -30,6 +30,10 @@ import {
 } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { useSimpleMode } from '../context/SimpleModeContext';
+import {
+  getLocalizedCategory,
+  getLocalizedUnit,
+} from '../utils/productLocalization';
 
 const categories = [
   'Grains & Pulses',
@@ -59,7 +63,7 @@ const initialForm = {
 
 const Products = ({ showToast, onTriggerVoiceConfirm }) => {
   const location = useLocation();
-  const { t } = useLanguage();
+  const { t, selectedLanguage, selectedLocale } = useLanguage();
   const { simpleMode } = useSimpleMode();
 
   const [products, setProducts] = useState([]);
@@ -234,6 +238,8 @@ const Products = ({ showToast, onTriggerVoiceConfirm }) => {
             </Button>
             <VoiceButton
               variant="button"
+              language={selectedLanguage}
+              locale={selectedLocale}
               label={t('voice.voiceAdd')}
               contextHint="Add 20 packets of Maggi"
               onCommandResult={handleVoiceCommand}
@@ -315,7 +321,7 @@ const Products = ({ showToast, onTriggerVoiceConfirm }) => {
                 >
                   {categories.map((cat) => (
                     <MenuItem key={cat} value={cat}>
-                      {cat}
+                      {getLocalizedCategory(cat, selectedLanguage)}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -355,7 +361,7 @@ const Products = ({ showToast, onTriggerVoiceConfirm }) => {
                 >
                   {units.map((u) => (
                     <MenuItem key={u} value={u}>
-                      {u}
+                      {getLocalizedUnit(u, selectedLanguage)}
                     </MenuItem>
                   ))}
                 </TextField>

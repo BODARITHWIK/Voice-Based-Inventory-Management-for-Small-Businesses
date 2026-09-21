@@ -89,29 +89,14 @@ export default function ScanStockScreen({ navigation }) {
       }
     } catch (err) {
       console.warn('Scan analysis failed:', err);
-      // Create a friendly fallback candidate so the merchant can still proceed smoothly
+      const errMsg = err.response?.data?.message || 'Stock photo recognition is unavailable or not configured. Please use barcode scanning or enter items manually.';
       setScanResult({
-        matchedProduct: {
-          id: 1,
-          name: 'Detected Packaged Product',
-          category: 'Grocery',
-          quantity: 24,
-          unit: 'packets',
-          sellingPrice: 35.0,
-        },
-        detectedBrand: 'Kirana Brand',
-        detectedCategory: 'Groceries',
-        confidenceScore: 0.88,
-        message: 'Product recognized. Ready for stock update.',
+        status: 'UNAVAILABLE',
+        message: errMsg,
+        confidenceScore: 0,
       });
-      setSelectedMatch({
-        id: 1,
-        name: 'Detected Packaged Product',
-        category: 'Grocery',
-        quantity: 24,
-        unit: 'packets',
-        sellingPrice: 35.0,
-      });
+      setSelectedMatch(null);
+      Alert.alert('Analysis Unavailable', errMsg);
     } finally {
       setAnalyzing(false);
     }
@@ -238,6 +223,18 @@ export default function ScanStockScreen({ navigation }) {
                         Price: ₹{selectedMatch.sellingPrice || 0}
                       </Text>
                     </View>
+                  </View>
+                )}
+
+                {!selectedMatch && (!scanResult.candidateMatches || scanResult.candidateMatches.length === 0) && (
+                  <View style={[styles.productMatchCard, { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]}>
+                    <Text style={[styles.matchName, { color: '#B91C1C' }]}>⚠️ Photo Recognition Unavailable</Text>
+                    <Text style={{ color: '#7F1D1D', marginTop: 4, fontSize: 13 }}>
+                      {scanResult.message || 'No matching product could be detected from this photo.'}
+                    </Text>
+                    <Text style={{ color: '#475569', marginTop: 8, fontSize: 12 }}>
+                      Please use barcode scanning or enter items manually from the inventory screen.
+                    </Text>
                   </View>
                 )}
 

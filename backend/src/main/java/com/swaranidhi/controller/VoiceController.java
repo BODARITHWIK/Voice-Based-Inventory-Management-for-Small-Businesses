@@ -49,10 +49,15 @@ public class VoiceController {
      * 3. Understand voice/text command into NormalizedCommand (Section 40, 42)
      */
     @PostMapping("/understand")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'STAFF')")
     public ResponseEntity<ApiResponse<NormalizedCommand>> understandCommand(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody VoiceCommandRequest request) {
-        Long businessId = principal != null ? principal.getBusinessId() : 1L;
+        if (principal == null || principal.getBusinessId() == null) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Unauthorized"));
+        }
+        Long businessId = principal.getBusinessId();
         NormalizedCommand cmd = voiceService.understand(businessId, request);
         return ResponseEntity.ok(ApiResponse.success("Command understood", cmd));
     }
@@ -61,10 +66,15 @@ public class VoiceController {
      * 4. Execute voice command (Section 40)
      */
     @PostMapping({"/command", "/process"})
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'STAFF')")
     public ResponseEntity<ApiResponse<VoiceCommandResponse>> processVoiceCommand(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody VoiceCommandRequest request) {
-        Long businessId = principal != null ? principal.getBusinessId() : 1L;
+        if (principal == null || principal.getBusinessId() == null) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Unauthorized"));
+        }
+        Long businessId = principal.getBusinessId();
         VoiceCommandResponse response = voiceService.processCommand(businessId, request);
         return ResponseEntity.ok(ApiResponse.success("Voice command processed", response));
     }

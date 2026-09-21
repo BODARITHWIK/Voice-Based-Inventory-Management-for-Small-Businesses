@@ -127,6 +127,42 @@ export default function HomeScreen({ navigation }) {
       border: '#E9D5FF',
       onPress: () => navigation.navigate('Products'),
     },
+    {
+      id: 'purchases',
+      label: 'Purchases',
+      icon: '📥',
+      subtext: 'Inward Stock',
+      bg: '#ECFDF5',
+      border: '#A7F3D0',
+      onPress: () => navigation.navigate('Purchases'),
+    },
+    {
+      id: 'suppliers',
+      label: 'Suppliers',
+      icon: '🏭',
+      subtext: 'Wholesale Mandi',
+      bg: '#EFF6FF',
+      border: '#BFDBFE',
+      onPress: () => navigation.navigate('Suppliers'),
+    },
+    {
+      id: 'reports',
+      label: 'Reports',
+      icon: '📊',
+      subtext: 'Profit & Health',
+      bg: '#FEF3C7',
+      border: '#FDE68A',
+      onPress: () => navigation.navigate('Reports'),
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: '⚙️',
+      subtext: '23 Languages',
+      bg: '#F1F5F9',
+      border: '#CBD5E1',
+      onPress: () => navigation.navigate('Settings'),
+    },
   ];
 
   return (
@@ -139,17 +175,25 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.greetingText}>{getGreeting()}</Text>
           <Text style={styles.shopTitle}>Swaranidhi Kirana</Text>
         </View>
-        <TouchableOpacity
-          style={styles.bellButton}
-          onPress={() => navigation.navigate('Alerts')}
-        >
-          <Text style={styles.bellIcon}>🔔</Text>
-          {alerts.totalAlerts > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{alerts.totalAlerts}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity
+            style={styles.bellButton}
+            onPress={() => navigation.navigate('Settings')}
+          >
+            <Text style={{ fontSize: 20 }}>⚙️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.bellButton}
+            onPress={() => navigation.navigate('Alerts')}
+          >
+            <Text style={styles.bellIcon}>🔔</Text>
+            {alerts.totalAlerts > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{alerts.totalAlerts}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView

@@ -6,6 +6,7 @@ import com.swaranidhi.entity.InventoryTransaction;
 import com.swaranidhi.entity.Product;
 import com.swaranidhi.entity.StockStatus;
 import com.swaranidhi.entity.TransactionType;
+import com.swaranidhi.exception.BadRequestException;
 import com.swaranidhi.exception.ResourceNotFoundException;
 import com.swaranidhi.repository.BusinessRepository;
 import com.swaranidhi.repository.InventoryTransactionRepository;
@@ -78,6 +79,24 @@ public class ProductService {
                 ? req.getSku().trim().toUpperCase()
                 : "SKU-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 
+        // Enforce business-level SKU uniqueness
+        productRepository.findByBusinessIdAndSku(businessId, sku)
+                .ifPresent(existing -> {
+                    throw new BadRequestException("Product with SKU '" + sku + "' already exists in this business.");
+                });
+
+        String barcode = (req.getBarcode() != null && !req.getBarcode().isBlank())
+                ? req.getBarcode().trim()
+                : null;
+
+        // Enforce business-level Barcode uniqueness
+        if (barcode != null) {
+            productRepository.findByBusinessIdAndBarcode(businessId, barcode)
+                    .ifPresent(existing -> {
+                        throw new BadRequestException("Product with barcode '" + barcode + "' already exists in this business.");
+                    });
+        }
+
         Product product = new Product(
                 business,
                 req.getName().trim(),
@@ -90,7 +109,7 @@ public class ProductService {
                 req.getSellingPrice(),
                 req.getSupplier()
         );
-        product.setBarcode(req.getBarcode());
+        product.setBarcode(barcode);
         product.setDescription(req.getDescription());
         product.setManufacturingDate(req.getManufacturingDate());
         product.setExpiryDate(req.getExpiryDate());
@@ -127,8 +146,32 @@ public class ProductService {
 
         product.setName(req.getName().trim());
         if (req.getCategory() != null) product.setCategory(req.getCategory().trim());
-        if (req.getSku() != null) product.setSku(req.getSku().trim().toUpperCase());
-        if (req.getBarcode() != null) product.setBarcode(req.getBarcode().trim());
+        
+        if (req.getSku() != null && !req.getSku().isBlank()) {
+            String newSku = req.getSku().trim().toUpperCase();
+            if (!newSku.equalsIgnoreCase(product.getSku())) {
+                productRepository.findByBusinessIdAndSku(businessId, newSku)
+                        .ifPresent(existing -> {
+                            if (!existing.getId().equals(id)) {
+                                throw new BadRequestException("Product with SKU '" + newSku + "' already exists in this business.");
+                            }
+                        });
+                product.setSku(newSku);
+            }
+        }
+
+        if (req.getBarcode() != null) {
+            String newBarcode = req.getBarcode().isBlank() ? null : req.getBarcode().trim();
+            if (newBarcode != null && !newBarcode.equals(product.getBarcode())) {
+                productRepository.findByBusinessIdAndBarcode(businessId, newBarcode)
+                        .ifPresent(existing -> {
+                            if (!existing.getId().equals(id)) {
+                                throw new BadRequestException("Product with barcode '" + newBarcode + "' already exists in this business.");
+                            }
+                        });
+            }
+            product.setBarcode(newBarcode);
+        }
         if (req.getUnit() != null) product.setUnit(req.getUnit().trim());
         if (req.getMinimumStock() != null) product.setMinimumStock(req.getMinimumStock());
         if (req.getPurchasePrice() != null) product.setPurchasePrice(req.getPurchasePrice());

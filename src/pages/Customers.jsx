@@ -40,6 +40,7 @@ import {
 } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { useSimpleMode } from '../context/SimpleModeContext';
+import { getLocalizedDateString } from '../utils/productLocalization';
 
 const initialCustomerForm = {
   name: '',
@@ -50,7 +51,7 @@ const initialCustomerForm = {
 };
 
 const Customers = ({ showToast }) => {
-  const { t } = useLanguage();
+  const { t, selectedLanguage } = useLanguage();
   const { simpleMode } = useSimpleMode();
 
   const [customers, setCustomers] = useState([]);
@@ -86,7 +87,7 @@ const Customers = ({ showToast }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) {
-      showToast?.('Please enter customer name and phone number.', 'warning');
+      showToast?.(t('customers.enterNamePhone'), 'warning');
       return;
     }
 
@@ -95,7 +96,7 @@ const Customers = ({ showToast }) => {
         ...formData,
         creditAmount: formData.creditAmount ? `₹${formData.creditAmount}` : '₹0',
       });
-      showToast?.(`Customer ${formData.name} added to Khata.`, 'success');
+      showToast?.(t('customers.addedToKhata', { name: formData.name }), 'success');
       setOpenModal(false);
       setFormData(initialCustomerForm);
       loadCustomers();
@@ -209,12 +210,12 @@ const Customers = ({ showToast }) => {
                       {row.creditAmount}
                     </TableCell>
                     <TableCell sx={{ color: '#64748b' }}>
-                      {row.lastPurchase}
+                      {getLocalizedDateString(row.lastPurchase, selectedLanguage)}
                     </TableCell>
                     <TableCell>
                       <Chip
                         size="small"
-                        label={hasCredit ? 'Udhaar / Credit' : 'All Clear'}
+                        label={hasCredit ? (t('customers.udhaarCredit') || 'Udhaar / Credit') : (t('customers.allClear') || 'All Clear')}
                         sx={{
                           backgroundColor: hasCredit ? '#fffbeb' : '#f0fdf4',
                           color: hasCredit ? '#92400e' : '#166534',
@@ -242,7 +243,7 @@ const Customers = ({ showToast }) => {
                               '&:hover': { bgcolor: '#d1fae5', borderColor: '#059669' },
                             }}
                           >
-                            Pay
+                            {t('customers.recordPayment') || 'Pay'}
                           </Button>
                         </Tooltip>
                         <Tooltip title={t('customers.viewKhata')}>
@@ -261,7 +262,7 @@ const Customers = ({ showToast }) => {
                               '&:hover': { bgcolor: '#dbeafe', borderColor: '#2563eb' },
                             }}
                           >
-                            Khata
+                            {t('customers.viewKhata') || 'Khata'}
                           </Button>
                         </Tooltip>
                       </Stack>
@@ -284,7 +285,7 @@ const Customers = ({ showToast }) => {
       >
         <DialogTitle sx={{ pb: 1, pt: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
-            💰 Record Khata Payment
+            💰 {t('customers.recordPaymentTitle')}
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748b' }}>
             Customer: <strong>{selectedCustomer?.name}</strong> (Pending: {selectedCustomer?.creditAmount})
@@ -295,7 +296,7 @@ const Customers = ({ showToast }) => {
           <DialogContent sx={{ py: 2.5 }}>
             <Stack spacing={2}>
               <TextField
-                label="Payment Amount (₹) *"
+                label={`${t('customers.paymentAmount') || 'Payment Amount (₹)'} *`}
                 type="number"
                 required
                 fullWidth
@@ -310,18 +311,18 @@ const Customers = ({ showToast }) => {
 
               <TextField
                 select
-                label="Payment Method *"
+                label={`${t('customers.paymentMethod') || 'Payment Method'} *`}
                 fullWidth
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               >
                 <MenuItem value="UPI">UPI (Google Pay / PhonePe / Paytm)</MenuItem>
-                <MenuItem value="CASH">Cash (నగదు / नकद)</MenuItem>
-                <MenuItem value="CARD">Debit / Credit Card</MenuItem>
+                <MenuItem value="CASH">{t('sales.cash')}</MenuItem>
+                <MenuItem value="CARD">{t('sales.card')}</MenuItem>
               </TextField>
 
               <TextField
-                label="Notes (Optional)"
+                label={t('customers.notes') || 'Notes (Optional)'}
                 fullWidth
                 placeholder="e.g. Cleared full pending balance"
                 value={paymentNotes}
@@ -332,7 +333,7 @@ const Customers = ({ showToast }) => {
           <Divider />
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button onClick={() => setPaymentModalOpen(false)} sx={{ color: '#64748b' }}>
-              Cancel
+              {t('confirm.cancel')}
             </Button>
             <Button
               type="submit"
@@ -340,7 +341,7 @@ const Customers = ({ showToast }) => {
               disabled={submittingPayment}
               sx={{ bgcolor: '#059669', fontWeight: 700, '&:hover': { bgcolor: '#047857' } }}
             >
-              {submittingPayment ? <CircularProgress size={20} color="inherit" /> : 'Confirm Payment'}
+              {submittingPayment ? <CircularProgress size={20} color="inherit" /> : (t('customers.savePayment') || 'Confirm Payment')}
             </Button>
           </DialogActions>
         </form>
@@ -358,7 +359,7 @@ const Customers = ({ showToast }) => {
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
-                📖 Khata Ledger — {selectedCustomer?.name}
+                📖 {t('customers.khataLedgerTitle')} — {selectedCustomer?.name}
               </Typography>
               <Typography variant="caption" sx={{ color: '#64748b' }}>
                 Phone: {selectedCustomer?.phone} | Account Status: Active
@@ -386,11 +387,11 @@ const Customers = ({ showToast }) => {
               <Table size="small">
                 <TableHead sx={{ bgcolor: '#f8fafc' }}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Transaction Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Reference</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align="right">Amount (₹)</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t('sales.date')}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t('common.status')}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t('sales.invoice')}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t('products.item')}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="right">{t('sales.amount')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -401,7 +402,7 @@ const Customers = ({ showToast }) => {
                         <TableCell>
                           <Chip
                             size="small"
-                            label={entry.type === 'CREDIT_SALE' ? 'Credit Sale' : 'Payment Received'}
+                            label={entry.type === 'CREDIT_SALE' ? (t('customers.creditSale') || 'Credit Sale') : (t('customers.paymentReceived') || 'Payment Received')}
                             sx={{
                               bgcolor: entry.type === 'CREDIT_SALE' ? '#fff1f2' : '#f0fdf4',
                               color: entry.type === 'CREDIT_SALE' ? '#e11d48' : '#15803d',
@@ -420,7 +421,7 @@ const Customers = ({ showToast }) => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 3, color: '#64748b' }}>
-                        No past credit history recorded yet.
+                        {t('customers.noCreditHistory') || 'No past credit history recorded yet.'}
                       </TableCell>
                     </TableRow>
                   )}
@@ -432,7 +433,7 @@ const Customers = ({ showToast }) => {
         <Divider />
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setKhataModalOpen(false)} sx={{ color: '#64748b' }}>
-            Close
+            {t('common.close') || 'Close'}
           </Button>
           <Button
             variant="contained"
@@ -442,7 +443,7 @@ const Customers = ({ showToast }) => {
             }}
             sx={{ bgcolor: '#059669', fontWeight: 700, '&:hover': { bgcolor: '#047857' } }}
           >
-            Record Payment Now
+            {t('customers.recordPayment') || 'Record Payment Now'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -460,7 +461,7 @@ const Customers = ({ showToast }) => {
             {t('customers.addCustomerBtn')}
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748b' }}>
-            Add customer account and opening Khata credit balance.
+            {t('customers.subtitle')}
           </Typography>
         </DialogTitle>
         <Divider />
@@ -492,7 +493,7 @@ const Customers = ({ showToast }) => {
 
               <Grid item xs={12} sm={7}>
                 <TextField
-                  label="Email (Optional)"
+                  label={`${t('common.email') || 'Email'} (Optional)`}
                   fullWidth
                   placeholder="customer@gmail.com"
                   value={formData.email}
@@ -502,7 +503,7 @@ const Customers = ({ showToast }) => {
 
               <Grid item xs={12} sm={5}>
                 <TextField
-                  label="Opening Udhaar / Khata (₹)"
+                  label={t('customers.openingKhata') || 'Opening Udhaar / Khata (₹)'}
                   type="number"
                   fullWidth
                   placeholder="0"

@@ -43,11 +43,12 @@ import ConnectivityStatus from './ConnectivityStatus';
 import { useLanguage } from '../context/LanguageContext';
 import { useSimpleMode } from '../context/SimpleModeContext';
 import { useAuth } from '../context/AuthContext';
+import { getLocalizedProduct } from '../utils/productLocalization';
 
 const Navbar = ({ onDrawerToggle, onVoiceCommandParsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, selectedLanguage, selectedLocale } = useLanguage();
   const { simpleMode, toggleSimpleMode, ttsEnabled, toggleTts } = useSimpleMode();
   const { user, logout } = useAuth();
 
@@ -91,7 +92,7 @@ const Navbar = ({ onDrawerToggle, onVoiceCommandParsed }) => {
   const notificationsList = [
     {
       id: 1,
-      title: 'Basmati Rice',
+      title: getLocalizedProduct('Basmati Rice', selectedLanguage),
       desc: 'Only 5 kg remaining. Time to reorder.',
       time: '10 min ago',
       type: 'warning',
@@ -116,7 +117,7 @@ const Navbar = ({ onDrawerToggle, onVoiceCommandParsed }) => {
     {
       id: 4,
       title: 'Swaranidhi Assistant',
-      desc: 'Multilingual speech engine ready (English, Telugu, Hindi).',
+      desc: 'Multilingual speech engine ready (22 Indian Languages + English).',
       time: '2 hours ago',
       type: 'system',
       icon: <InfoOutlinedIcon sx={{ color: '#64748b', fontSize: 20 }} />,
@@ -239,6 +240,8 @@ const Navbar = ({ onDrawerToggle, onVoiceCommandParsed }) => {
           {/* Quick Voice Command in Navbar */}
           <VoiceButton
             variant="icon"
+            language={selectedLanguage}
+            locale={selectedLocale}
             onCommandResult={onVoiceCommandParsed}
           />
 
@@ -322,7 +325,7 @@ const Navbar = ({ onDrawerToggle, onVoiceCommandParsed }) => {
                 }}
                 sx={{ textTransform: 'none', fontWeight: 700, color: '#059669' }}
               >
-                View all alerts →
+                {t('notifications.title')} →
               </Button>
             </Box>
           </Popover>
@@ -403,7 +406,7 @@ const Navbar = ({ onDrawerToggle, onVoiceCommandParsed }) => {
               <ListItemIcon>
                 <LogoutOutlinedIcon fontSize="small" sx={{ color: '#dc2626' }} />
               </ListItemIcon>
-              <ListItemText primary="Logout" />
+              <ListItemText primary={t('auth.logout') || 'Logout'} />
             </MenuItem>
           </Menu>
         </Stack>

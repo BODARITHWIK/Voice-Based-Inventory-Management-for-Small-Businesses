@@ -100,9 +100,8 @@ public class SaleService {
             }
         }
 
-        // 2. Generate unique invoice number
-        String datePrefix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
-        String invoiceNumber = "INV-" + datePrefix + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        // 2. Generate unique collision-resistant invoice number
+        String invoiceNumber = generateUniqueInvoiceNumber(businessId);
 
         // 3. Resolve Customer if any
         Customer customer = null;
@@ -129,11 +128,13 @@ public class SaleService {
         for (SaleRequest.SaleItemRequest itemReq : req.getItems()) {
             Product product = null;
             if (itemReq.getProductId() != null) {
-                product = productRepository.findByIdAndBusinessId(itemReq.getProductId(), businessId)
+                product = productRepository.findByIdAndBusinessIdWithLock(itemReq.getProductId(), businessId)
+                        .or(() -> productRepository.findByIdAndBusinessId(itemReq.getProductId(), businessId))
                         .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemReq.getProductId()));
             } else if (itemReq.getProductName() != null && !itemReq.getProductName().isBlank()) {
-                product = productRepository.findFirstByNameContainingIgnoreCase(businessId, itemReq.getProductName().trim())
+                Product temp = productRepository.findFirstByNameContainingIgnoreCase(businessId, itemReq.getProductName().trim())
                         .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + itemReq.getProductName()));
+                product = productRepository.findByIdAndBusinessIdWithLock(temp.getId(), businessId).orElse(temp);
             }
 
             if (product == null) {
@@ -243,5 +244,21 @@ public class SaleService {
                 "Created sale " + invoiceNumber + " total ₹" + total + " for " + customerName);
 
         return savedSale;
+    }
+
+    public String generateUniqueInvoiceNumber(Long businessId) {
+        String datePrefix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String invoiceNumber;
+        int attempts = 0;
+        do {
+            String randomPart = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            invoiceNumber = "INV-" + datePrefix + "-" + randomPart;
+            attempts++;
+            if (attempts > 10) {
+                invoiceNumber = "INV-" + datePrefix + "-" + System.currentTimeMillis() + "-" + randomPart;
+                break;
+            }
+        } while (saleRepository.findByInvoiceNumberAndBusinessId(invoiceNumber, businessId).isPresent());
+        return invoiceNumber;
     }
 }

@@ -275,11 +275,15 @@ public class VoiceService {
         // 7. ADD STOCK (Core inventory command)
         int qty = extractQuantity(normalizedText);
         boolean isAddKeyword = lower.contains("add") || lower.contains("pettu") || lower.contains("jodo") ||
-                lower.contains("యాడ్") || lower.contains("చేయి") || lower.contains("जोड़ो") ||
-                lower.contains("సేరిసి") || lower.contains("சேர்") || lower.contains("ചേർക്കൂ") ||
-                lower.contains("যোগ") || lower.contains("उमेरो") || lower.contains("ਪਾ ਦਿਓ") ||
-                lower.contains("شامل") || lower.contains("ଯୋଡନ୍ତୁ") || lower.contains("থप्नुहोस्") ||
-                lower.contains("दाजाब") || lower.contains("हಾಪచিল্লু") || lower.contains("stock");
+                lower.contains("యాడ్") || lower.contains("చేయి") || lower.contains("జోడించండి") || lower.contains("జోడించు") ||
+                lower.contains("जोड़ो") || lower.contains("जोडा") || lower.contains("डालो") ||
+                lower.contains("సేరిసి") || lower.contains("ಸೇರಿಸಿ") || lower.contains("ಹಾಕಿ") ||
+                lower.contains("சேர்") || lower.contains("சேர்க்கவும்") ||
+                lower.contains("ചേർക്കൂ") || lower.contains("ചേർക്കുക") ||
+                lower.contains("যোগ") || lower.contains("ਉਮੇਰੋ") || lower.contains("ઉમેરો") ||
+                lower.contains("ਪਾ ਦਿਓ") || lower.contains("ਪਾਓ") || lower.contains("ਜੋੜੋ") ||
+                lower.contains("شامل") || lower.contains("ଯୋଡନ୍ତু") || lower.contains("থप्नुहोस्") ||
+                lower.contains("दाजाब") || lower.contains("হಾಪచিল্লু") || lower.contains("stock");
 
         if (isAddKeyword || qty > 0) {
             String prod = extractProductName(originalText);
@@ -361,17 +365,31 @@ public class VoiceService {
 
     private String extractUnit(String text) {
         String lower = text.toLowerCase();
-        if (lower.contains("kg") || lower.contains("kilo") || lower.contains("కిలో") || lower.contains("किलो") || lower.contains("கிலோ")) return "kg";
-        if (lower.contains("packet") || lower.contains("packets") || lower.contains("ప్యాకెట్") || lower.contains("पैकेट") || lower.contains("பாக்கெட்") || lower.contains("প্যাকেট")) return "packets";
+        if (lower.contains("kg") || lower.contains("kilo") || lower.contains("కిలో") || lower.contains("किलो") || lower.contains("கிலோ") || lower.contains("കിലോ") || lower.contains("ਕਿਲੋ") || lower.contains("કિલો") || lower.contains("কিলো") || lower.contains("କିଲୋ")) return "kg";
+        if (lower.contains("packet") || lower.contains("packets") || lower.contains("ప్యాకెట్") || lower.contains("పాకెట్") || lower.contains("पैकेट") || lower.contains("पॅकेट") || lower.contains("पाकीट") || lower.contains("பாக்கெட்") || lower.contains("প্যাকেট") || lower.contains("ਪੈਕਟ") || lower.contains("પેકેટ") || lower.contains("پیکٹ") || lower.contains("പാക്കറ്റ") || lower.contains("ಪ್ಯಾಕೆಟ್")) return "packets";
         if (lower.contains("piece") || lower.contains("pieces") || lower.contains("pcs")) return "pcs";
-        if (lower.contains("box") || lower.contains("boxes") || lower.contains("బాక్స్") || lower.contains("पेटी")) return "boxes";
-        if (lower.contains("liter") || lower.contains("litres") || lower.contains("లీటర్") || lower.contains("लीटर")) return "litres";
+        if (lower.contains("box") || lower.contains("boxes") || lower.contains("బాక్స్") || lower.contains("पेटी") || lower.contains("டப்பா") || lower.contains("ಡಬ್ಬ")) return "boxes";
+        if (lower.contains("liter") || lower.contains("litres") || lower.contains("లీటర్") || lower.contains("लीटर") || lower.contains("ലിറ്റർ") || lower.contains("லிட்டர்")) return "litres";
         return "packets";
     }
 
     private String extractProductName(String text) {
+        String lower = text.toLowerCase();
+        if (lower.contains("maggi") || lower.contains("మేగి") || lower.contains("మ్యాగీ") ||
+            lower.contains("मैगी") || lower.contains("मॅगी") || lower.contains("மகி") ||
+            lower.contains("மேகி") || lower.contains("ಮ್ಯಾಗಿ") || lower.contains("മാഗി") ||
+            lower.contains("ম্যাগি") || lower.contains("মেগী") || lower.contains("મેગી") ||
+            lower.contains("ਮੈਗੀ") || lower.contains("ମ୍ୟାਗି") || lower.contains("میگی")) {
+            return "Maggi";
+        }
+        if (lower.contains("heritage milk") || lower.contains("హెరిటేజ్ మిల్క్") || lower.contains("हेरिटेज मिल्क")) {
+            return "Heritage Milk";
+        }
+        if (lower.contains("parle") || lower.contains("పార్లే") || lower.contains("पारले")) {
+            return "Parle-G";
+        }
         // Strip common multilingual stop words without mangling the brand or product name (e.g. "Heritage Milk", "Maggi")
-        String cleaned = text.replaceAll("(?i)\\b(add|stock|lo|mein|cheyyi|pettu|jodo|karo|packets?|kg|kilo|pieces?|boxes?|how|much|do|i|have|entha|undi|kitna|hai|of|to|ke|కి|కో|స్టాక్|యాడ్|చేయి|జోడో|కరో|ప్యాకెట్లు|पैकेट|பாக்கெட்|প্যাকেট|சேர்|சேர்க்கவும்|ದಾಖಲಿಸಿ|സേർ|थप्नुहोस्)\\b", " ")
+        String cleaned = text.replaceAll("(?i)\\b(add|stock|lo|mein|cheyyi|pettu|jodo|karo|packets?|kg|kilo|pieces?|boxes?|how|much|do|i|have|entha|undi|kitna|hai|of|to|ke|కి|కో|స్టాక్|యాడ్|చేయి|జోడో|కరో|ప్యాకెట్లు|पैकेट|பாக்கெட்|প্যাকেট|சேர்|சேர்க்கவும்|ದಾಖಲಿಸಿ|ಸೇರ್|थप्नुहोस्)\\b", " ")
                 .replaceAll("\\d+", " ")
                 .replaceAll("[,.?!₹]", " ")
                 .trim()

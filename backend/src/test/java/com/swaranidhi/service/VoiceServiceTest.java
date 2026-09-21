@@ -167,4 +167,33 @@ class VoiceServiceTest {
         assertEquals("Maggi 2-Minute Noodles", res.getEntities().get("product"));
         assertEquals(20, res.getEntities().get("quantity"));
     }
+
+    @Test
+    @DisplayName("Step 19: All 10 Official Test Phrases Normalize to ADD_STOCK Maggi 20 packets")
+    void testTenOfficialStep19Languages() {
+        String[][] testPhrases = {
+            {"en", "Add 20 packets of Maggi"},
+            {"te", "20 ప్యాకెట్ల మేగి జోడించండి"},
+            {"hi", "मैगी के 20 पैकेट जोड़ो"},
+            {"ta", "20 பாக்கெட்டுகளைச் மேகி சேர்க்கவும்"},
+            {"kn", "20 ಪ್ಯಾಕೆಟ್ಗಳನ್ನು ಮ್ಯಾಗಿ ಸೇರಿಸಿ"},
+            {"ml", "20 പാക്കറ്റുകൾ മാഗി ചേർക്കുക"},
+            {"mr", "मॅगीचे 20 पाकीट जोडा"},
+            {"bn", "20 প্যাকেট ম্যাগি যোগ করুন"},
+            {"gu", "20 પેકેટ મેગી ઉમેરો"},
+            {"pa", "20 ਪੈਕਟ ਮੈਗੀ ਜੋੜੋ"}
+        };
+
+        for (String[] test : testPhrases) {
+            String lang = test[0];
+            String phrase = test[1];
+            VoiceCommandRequest req = new VoiceCommandRequest(phrase, lang);
+            VoiceCommandResponse res = voiceService.processCommand(1L, req);
+
+            assertEquals("ADD_STOCK", res.getIntent(), "Failed intent for " + lang + ": " + phrase);
+            assertEquals(20, res.getEntities().get("quantity"), "Failed quantity for " + lang);
+            assertEquals("packets", res.getEntities().get("unit"), "Failed unit for " + lang);
+            assertEquals("Maggi", res.getEntities().get("product"), "Failed product for " + lang);
+        }
+    }
 }

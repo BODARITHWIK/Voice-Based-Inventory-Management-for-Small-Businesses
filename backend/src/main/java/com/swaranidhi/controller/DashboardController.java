@@ -21,8 +21,13 @@ public class DashboardController {
     }
 
     @GetMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('OWNER', 'MANAGER', 'STAFF')")
     public ResponseEntity<ApiResponse<DashboardStatsResponse>> getDashboardStats(
             @AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null || principal.getBusinessId() == null) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Unauthorized"));
+        }
         DashboardStatsResponse stats = dashboardService.getDashboardStats(principal.getBusinessId());
         return ResponseEntity.ok(ApiResponse.success("Dashboard statistics", stats));
     }

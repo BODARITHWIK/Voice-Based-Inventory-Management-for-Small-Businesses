@@ -52,7 +52,8 @@ public class InventoryService {
 
     @Transactional
     public InventoryTransaction adjustStock(Long businessId, InventoryAdjustRequest req, String userName) {
-        Product product = productRepository.findByIdAndBusinessId(req.getProductId(), businessId)
+        Product product = productRepository.findByIdAndBusinessIdWithLock(req.getProductId(), businessId)
+                .or(() -> productRepository.findByIdAndBusinessId(req.getProductId(), businessId))
                 .filter(Product::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + req.getProductId()));
 
@@ -63,11 +64,13 @@ public class InventoryService {
         switch (type) {
             case STOCK_IN:
             case PURCHASE:
+            case RETURN:
                 delta = Math.abs(req.getQuantity());
                 break;
             case STOCK_OUT:
             case DAMAGE:
             case SALE:
+            case EXPIRED_REMOVAL:
                 delta = -Math.abs(req.getQuantity());
                 break;
             case ADJUSTMENT:

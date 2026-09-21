@@ -120,11 +120,12 @@ const INTENT_PATTERNS = {
     /\b(jodo|jod\s*do|daalo|dal\s*do|pettu|petti|veyyandi|penchandi|haaki|serisi|serunga|cherkkoo|cherkkuka)\b/i,
     /\b(add\s*cheyyi|add\s*cheyi|stock\s*lo\s*(add|pettu)|add\s*karo|stock\s*mein\s*(daalo|add|jodo)|stock\s*ge\s*haaki|stock\s*la\s*serunga|stock-?il\s*add)\b/i,
     // Telugu
-    /(?:స్టాక్\s*లో|స్టాక్|స్టాక్లో)\s*(?:పెట్టు|యాడ్|చేయి|చేయ్|కలుపు|చేర్చు)/i,
-    /(?:యాడ్\s*చేయి|యాడ్\s*చేయ్|స్టాక్లో\s*పెట్టు)/i,
+    /(?:స్టాక్\s*లో|స్టాక్|స్టాక్లో)\s*(?:పెట్టు|యాడ్|చేయి|చేయ్|కలుపు|చేర్చు|జోడించండి|జోడించు)/i,
+    /(?:యాడ్\s*చేయి|యాడ్\s*చేయ్|స్టాక్లో\s*పెట్టు|జోడించండి|జోడించు)/i,
+    /(?:జోడించండి|జోడించు)/i,
     // Hindi & Devanagari (Marathi, Nepali, Konkani, Sanskrit, Maithili, Dogri, Bodo)
     /(?:स्टॉक\s*में|स्टॉक|स्टॉकमध्ये|स्टॉकांत|स्टकमा|स्टकाव|स्टाक)\s*(?:डालो|जोड़ो|जोड़\s*दूँ|जोडू|जोडा|करा|थप्नुहोस्|पाओ|पा|दाजाब|योजयतु|एड)/i,
-    /(?:जोड़ो|जोड़\s*दूँ|स्टॉकमध्ये\s*जोडा|थप्नुहोस्|योजयतु|दाजाब)/i,
+    /(?:जोड़ो|जोड़\s*दूँ|जोडा|स्टॉकमध्ये\s*जोडा|थप्नुहोस्|योजयतु|दाजाब)/i,
     // Tamil
     /(?:ஸ்டாக்கில்|இருப்பில்)\s*(?:சேர்க்கவும்|சேர்|போடுங்கள்)/i,
     /(?:சேர்க்கவும்|சேர்)/i,
@@ -141,8 +142,8 @@ const INTENT_PATTERNS = {
     /(?:સ્ટોકમાં)\s*(?:ઉમેરો|નાખો)/i,
     /(?:ઉમેરો)/i,
     // Punjabi
-    /(?:ਸਟਾਕ\s*ਵਿੱਚ)\s*(?:ਪਾ\s*ਦਿਓ|ਪਾਓ)/i,
-    /(?:ਪਾ\s*ਦਿਓ|ਪਾਓ)/i,
+    /(?:ਸਟਾਕ\s*ਵਿੱਚ)\s*(?:ਪਾ\s*ਦਿਓ|ਪਾਓ|ਜੋੜੋ)/i,
+    /(?:ਪਾ\s*ਦਿਓ|ਪਾਓ|ਜੋੜੋ)/i,
     // Urdu, Kashmiri, Sindhi
     /(?:اسٹاک\s*میں|سٹاکس|اسٽاڪ)\s*(?:شامل\s*کریں|تھاوِو|شامل\s*ڪريو)/i,
     /(?:شامل\s*کریں|تھاوِو|شامل\s*ڪريو)/i,
@@ -227,18 +228,9 @@ function detectIntent(lower) {
 // ---------------------------------------------------------------------------
 // PRODUCT MATCHING (Preserves exact product identity across languages - Section 35)
 // ---------------------------------------------------------------------------
-const UNIT_RE = /\b(packets?|packetlu|packettlu|kg|kilos?|kilolu|litres?|liters?|ltr|boxes?|bottles?|pieces?|pcs?|packs?|units?|bags?|dozens?|ప్యాకెట్లు|ప్యాకెట్|కిలోలు|కిలో|पैकेट|किलो|பாக்கெட்|প্যাকেট|ਪੈਕਟ|پیکٹ|পেকেট|ପ୍ୟାକେଟ୍|पाकिटां|पुटकम्)\b/gi;
+const UNIT_RE = /(?<![\p{L}\p{N}])(packets?|packetlu|packettlu|pyaaketlu|kg|kilos?|kilolu|litres?|liters?|ltr|boxes?|bottles?|pieces?|pcs?|packs?|units?|bags?|dozens?|ప్యాకెట్లు|ప్యాకెట్ల|ప్యాకెట్|పాకెట్లను|పాకెట్లు|పాకెట్ల|కిలోలు|కిలో|पैकेटों|पैकेट|पॅकेट|पॅकेट्स|पाकिटां|पाकिटे|पाकीट|किलो|பாக்கெட்டுகளைச்|பாக்கெட்டுகளை|பாக்கெட்டுகள்|பாக்கெட்|கிலோ|প্যাকেটস|প্যাকেট|পেকেট|কিলো|ਪੈਕਟਾਂ|ਪੈਕਟ|ਪੈਕੇਟ|ਕਿਲੋ|પેકેટો|પેકેટ|પેકેટ્સ|કિલો|پیکٹوں|پیکٹ|ପ୍ୟାକେଟ୍|ପ୍ୟାକେଟ|କିଲୋ|പാക്കറ്റുകൾ|പാക്കറ്റുകളെ|പാക്കറ്റ്|കിലോ|ಪ್ಯಾಕೆಟ್ಗಳು|ಪ್ಯಾಕೆಟ್ಗಳನ್ನು|ಪ್ಯಾಕೆಟ್|ಪುಟಕಮ್|पुटकम्)(?![\p{L}\p{N}])/gui;
 
-const COMMON_MULTILINGUAL_WORDS = new RegExp(
-  '\\b(add|put|increase|stock|in|to|of|the|a|an|please|more|new|few|my|our|from|by|' +
-  'lo|mein|ge|la|il|ke|ki|ko|ka|cheyyi|cheyi|pettu|jodo|karo|daalo|serisi|haaki|serunga|cherkkoo|' +
-  'యాడు|చేయి|పెట్టు|స్టాక్లో|స్టాక్|జోడో|కరో|డాల్లో|' +
-  'जोड़ो|डालो|स्टॉक|में|சேர்க்கவும்|சேர்|இருப்பில்|' +
-  'ಸೇರಿಸಿ|ಹಾಕಿ|ಸ್ಟಾಕ್ಗೆ|ചേർക്കൂ|സ്റ്റോക്കിൽ|যোগ|করো|ষ্টকত|' +
-  'ਉਮੇਰੋ|ਪਾ|ਦਿਓ|شامل|کریں|ଯୋଡନ୍ତୁ|থप्नुहोस्|दाजाब|হাপচিল্লু|ᱡᱩᱲᱟᱹᱭ|' +
-  'packets?|kg|litres?|boxes?)\\b',
-  'gi'
-);
+const COMMON_MULTILINGUAL_WORDS = /(?<![\p{L}\p{N}])(add|adds|adding|put|puts|putting|increase|stock|in|to|of|the|a|an|please|more|new|few|my|our|from|by|lo|mein|ge|la|il|ke|ki|ko|ka|cheyyi|cheyi|pettu|jodo|karo|daalo|serisi|haaki|serunga|cherkkoo|జోడించండి|జోడించు|యాడు|చేయి|పెట్టు|స్టాక్లో|స్టాక్|జోడో|కరో|డాల్లో|जोड़ो|जोडा|डालो|स्टॉक|में|के|की|का|को|சேர்க்கவும்|சேர்|இருப்பில்|சர்க்கவும்|ಸೇರಿಸಿ|ಹಾಕಿ|ಸ್ಟಾಕ್ಗೆ|ದಾಸ್ತಾನು|ചേർക്കൂ|ചേർക്കുക|സ്റ്റോക്കിൽ|സ്റ്റോക്ക്|যোগ|করুন|করো|ষ্টকত|ষ্টক|ઉમેરો|નાખો|સ્ટોકમાં|સ્ટોક|ਜੋੜੋ|ਪਾ|ਦਿਓ|ਪਾਓ|ਸਟਾਕ|ਸਟਾਕਾਂ|شامل|کریں|اسٹاک|سٹاک|ଯୋଡନ୍ତু|ଷ୍ଟକ୍ରੇ|থप्नुहोस्|दाजाब|হাপচিল্লু|ᱡᱩੜᱟᱹᱭ|packets?|kg|litres?|boxes?)(?![\p{L}\p{N}])/gui;
 
 function jaroWinkler(s1, s2) {
   if (s1 === s2) return 1.0;
@@ -320,7 +312,7 @@ function extractProductCandidate(text) {
     .trim();
 
   // Clean remaining small particles
-  cleaned = cleaned.replace(/\b(ke|ki|ko|ka|lo|ge|la|il|me|di|de|da|ra|ৰ|ৰা)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+  cleaned = cleaned.replace(/(?<![\p{L}\p{N}])(ke|ki|ko|ka|lo|ge|la|il|me|di|de|da|ra|ৰ|ৰা|के|की|का|को|చే|ను|ని|కి|తో|లు|ల|च्या|चे|ची)(?![\p{L}\p{N}])/gui, ' ').replace(/\s+/g, ' ').trim();
   return cleaned || '';
 }
 

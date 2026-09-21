@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { offlineQueue } from './offlineQueue';
 import {
   initialProducts,
   initialSales,
@@ -13,7 +14,24 @@ import {
   reportStats,
 } from '../data/mockData';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+export const resolveApiBaseUrl = () => {
+  let url = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8080/api').trim();
+  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+    url = `https://${url}`;
+  }
+  const cleanNoSlash = url.replace(/\/+$/, '');
+  if (!cleanNoSlash.endsWith('/api')) {
+    url = `${cleanNoSlash}/api`;
+  }
+  return url;
+};
+
+const BASE_URL = resolveApiBaseUrl();
+const ENABLE_MOCK = import.meta.env.VITE_ENABLE_MOCK_DATA === 'true';
+
+const isNetworkError = (error) => {
+  return (typeof navigator !== 'undefined' && !navigator.onLine) || !error?.response;
+};
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -128,55 +146,98 @@ export const getProduct = async (id) => {
 };
 
 export const createProduct = async (data) => {
-  try {
-    const payload = {
-      name: data.name,
-      category: data.category || 'Daily Essentials',
-      sku: data.sku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
-      barcode: data.barcode || '',
-      quantity: Number(data.quantity || data.stock || 0),
-      unit: data.unit || 'packets',
-      minimumStock: Number(data.minimumStock || data.minStock || 10),
-      purchasePrice: Number(data.purchasePrice || 0),
-      sellingPrice: Number(data.sellingPrice || 0),
-      supplier: data.supplier || '',
-      description: data.description || '',
+  const payload = {
+    name: data.name,
+    category: data.category || 'Daily Essentials',
+    sku: data.sku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+    barcode: data.barcode || '',
+    quantity: Number(data.quantity || data.stock || 0),
+    unit: data.unit || 'packets',
+    minimumStock: Number(data.minimumStock || data.minStock || 10),
+    purchasePrice: Number(data.purchasePrice || 0),
+    sellingPrice: Number(data.sellingPrice || 0),
+    supplier: data.supplier || '',
+    description: data.description || '',
+  };
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    offlineQueue.enqueue('CREATE_PRODUCT', payload);
+    const queuedProduct = {
+      id: `OFFLINE-PRD-${Date.now()}`,
+      lastUpdated: new Date().toISOString().split('T')[0],
+      status: Number(payload.quantity) === 0 ? 'Out of Stock' :
+              Number(payload.quantity) <= Number(payload.minimumStock) ? 'Low Stock' : 'In Stock',
+      stock: payload.quantity,
+      quantity: payload.quantity,
+      _isOfflineQueued: true,
+      ...payload,
     };
+    localProducts = [queuedProduct, ...localProducts];
+    setLocal(STORAGE_KEYS.PRODUCTS, localProducts);
+    return queuedProduct;
+  }
+
+  try {
     const created = await apiClient.post('/products', payload);
     return created;
   } catch (error) {
-    const newProduct = {
-      id: `PRD-${String(localProducts.length + 1).padStart(3, '0')}`,
-      lastUpdated: new Date().toISOString().split('T')[0],
-      status: Number(data.quantity || data.stock) === 0 ? 'Out of Stock' :
-              Number(data.quantity || data.stock) <= Number(data.minStock || 10) ? 'Low Stock' : 'In Stock',
-      stock: Number(data.quantity || data.stock || 0),
-      quantity: Number(data.quantity || data.stock || 0),
-      ...data,
-    };
-    localProducts = [newProduct, ...localProducts];
-    setLocal(STORAGE_KEYS.PRODUCTS, localProducts);
-    return newProduct;
+    if (isNetworkError(error)) {
+      offlineQueue.enqueue('CREATE_PRODUCT', payload);
+      const queuedProduct = {
+        id: `OFFLINE-PRD-${Date.now()}`,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        status: Number(payload.quantity) === 0 ? 'Out of Stock' :
+                Number(payload.quantity) <= Number(payload.minimumStock) ? 'Low Stock' : 'In Stock',
+        stock: payload.quantity,
+        quantity: payload.quantity,
+        _isOfflineQueued: true,
+        ...payload,
+      };
+      localProducts = [queuedProduct, ...localProducts];
+      setLocal(STORAGE_KEYS.PRODUCTS, localProducts);
+      return queuedProduct;
+    }
+    if (ENABLE_MOCK) {
+      const newProduct = {
+        id: `PRD-${String(localProducts.length + 1).padStart(3, '0')}`,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        status: Number(payload.quantity) === 0 ? 'Out of Stock' :
+                Number(payload.quantity) <= Number(payload.minimumStock) ? 'Low Stock' : 'In Stock',
+        stock: payload.quantity,
+        quantity: payload.quantity,
+        ...payload,
+      };
+      localProducts = [newProduct, ...localProducts];
+      setLocal(STORAGE_KEYS.PRODUCTS, localProducts);
+      return newProduct;
+    }
+    throw error;
   }
 };
 
 export const updateProduct = async (id, data) => {
+  const payload = {
+    name: data.name,
+    category: data.category,
+    sku: data.sku,
+    barcode: data.barcode,
+    quantity: Number(data.quantity !== undefined ? data.quantity : data.stock),
+    unit: data.unit,
+    minimumStock: Number(data.minimumStock !== undefined ? data.minimumStock : data.minStock),
+    purchasePrice: Number(data.purchasePrice || 0),
+    sellingPrice: Number(data.sellingPrice || 0),
+    supplier: data.supplier,
+    description: data.description,
+  };
+
   try {
-    const payload = {
-      name: data.name,
-      category: data.category,
-      sku: data.sku,
-      barcode: data.barcode,
-      quantity: Number(data.quantity !== undefined ? data.quantity : data.stock),
-      unit: data.unit,
-      minimumStock: Number(data.minimumStock !== undefined ? data.minimumStock : data.minStock),
-      purchasePrice: Number(data.purchasePrice || 0),
-      sellingPrice: Number(data.sellingPrice || 0),
-      supplier: data.supplier,
-      description: data.description,
-    };
     return await apiClient.put(`/products/${id}`, payload);
   } catch (error) {
+    if (isNetworkError(error)) {
+      offlineQueue.enqueue('UPDATE_PRODUCT', { id, data: payload });
+    } else if (!ENABLE_MOCK) {
+      throw error;
+    }
     localProducts = localProducts.map((p) => {
       if (String(p.id) === String(id)) {
         const updatedStock = data.stock !== undefined ? Number(data.stock) : (data.quantity !== undefined ? Number(data.quantity) : p.stock);
@@ -195,6 +256,9 @@ export const deleteProduct = async (id) => {
   try {
     return await apiClient.delete(`/products/${id}`);
   } catch (error) {
+    if (!isNetworkError(error) && !ENABLE_MOCK) {
+      throw error;
+    }
     localProducts = localProducts.filter((p) => String(p.id) !== String(id));
     setLocal(STORAGE_KEYS.PRODUCTS, localProducts);
     return { success: true, id };
@@ -219,44 +283,65 @@ export const getSales = async () => {
 };
 
 export const createSale = async (data) => {
-  try {
-    const payload = {
-      customerId: data.customerId || null,
-      customerName: data.customerName || 'Walk-in Customer',
-      products: data.products || '',
-      amount: Number(data.amount || 0),
-      quantity: Number(data.quantity || 1),
-      paymentMethod: (data.paymentMethod || 'CASH').toUpperCase(),
-      paidAmount: data.paymentMethod === 'Credit' ? 0 : Number(data.paidAmount || data.amount || 0),
-      items: data.items || [],
-      idempotencyKey: data.idempotencyKey || `SALE-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    };
-    return await apiClient.post('/sales', payload);
-  } catch (error) {
-    const newSale = {
-      id: `INV-${1026 + localSales.length}`,
-      invoiceNumber: `INV-${1026 + localSales.length}`,
+  const payload = {
+    customerId: data.customerId || null,
+    customerName: data.customerName || 'Walk-in Customer',
+    products: data.products || '',
+    amount: Number(data.amount || 0),
+    quantity: Number(data.quantity || 1),
+    discount: Number(data.discount || 0),
+    tax: Number(data.tax || 0),
+    paymentMethod: (data.paymentMethod || 'CASH').toUpperCase(),
+    paidAmount: (data.paymentMethod === 'Credit' || data.paymentMethod === 'CREDIT') ? 0 : Number(data.paidAmount ?? data.amount ?? 0),
+    items: data.items || [],
+    idempotencyKey: data.idempotencyKey || `SALE-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+  };
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    offlineQueue.enqueue('CREATE_SALE', payload);
+    const queuedSale = {
+      id: `OFFLINE-INV-${Date.now()}`,
+      invoiceNumber: `OFFLINE-INV-${Date.now()}`,
       date: 'Just now',
-      status: data.status || 'Completed',
+      status: 'Completed',
+      _isOfflineQueued: true,
       ...data,
     };
-    localSales = [newSale, ...localSales];
+    localSales = [queuedSale, ...localSales];
     setLocal(STORAGE_KEYS.SALES, localSales);
+    return queuedSale;
+  }
 
-    // Record in local transactions
-    const newTx = {
-      id: newSale.id,
-      product: data.products || 'Retail Items',
-      type: 'Sale',
-      quantity: `-${data.quantity || 1} items`,
-      amount: `₹${data.amount}`,
-      date: 'Today',
-      status: 'Completed',
-    };
-    localTransactions = [newTx, ...localTransactions];
-    setLocal(STORAGE_KEYS.TRANSACTIONS, localTransactions);
-
-    return newSale;
+  try {
+    return await apiClient.post('/sales', payload);
+  } catch (error) {
+    if (isNetworkError(error)) {
+      offlineQueue.enqueue('CREATE_SALE', payload);
+      const queuedSale = {
+        id: `OFFLINE-INV-${Date.now()}`,
+        invoiceNumber: `OFFLINE-INV-${Date.now()}`,
+        date: 'Just now',
+        status: 'Completed',
+        _isOfflineQueued: true,
+        ...data,
+      };
+      localSales = [queuedSale, ...localSales];
+      setLocal(STORAGE_KEYS.SALES, localSales);
+      return queuedSale;
+    }
+    if (ENABLE_MOCK) {
+      const newSale = {
+        id: `INV-${1026 + localSales.length}`,
+        invoiceNumber: `INV-${1026 + localSales.length}`,
+        date: 'Just now',
+        status: data.status || 'Completed',
+        ...data,
+      };
+      localSales = [newSale, ...localSales];
+      setLocal(STORAGE_KEYS.SALES, localSales);
+      return newSale;
+    }
+    throw error;
   }
 };
 
@@ -278,50 +363,79 @@ export const getPurchases = async () => {
 };
 
 export const createPurchase = async (data) => {
-  try {
-    const payload = {
-      supplierId: data.supplierId || null,
-      supplierName: data.supplier || data.supplierName || 'Direct Supplier',
-      amount: Number(data.amount || 0),
-      quantity: Number(data.quantity || 1),
-      paymentMethod: (data.paymentMethod || 'CASH').toUpperCase(),
-      paidAmount: Number(data.paidAmount || data.amount || 0),
-      items: data.items || [
-        {
-          productName: data.products || 'Restocked Inventory',
-          quantity: Number(parseInt(data.quantity, 10) || 1),
-          unit: 'units',
-          unitPrice: Number(data.amount || 0),
-        },
-      ],
-      idempotencyKey: `PUR-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    };
-    return await apiClient.post('/purchases', payload);
-  } catch (error) {
-    const newPurchase = {
-      id: `PUR-${206 + localPurchases.length}`,
-      purchaseNumber: `PUR-${206 + localPurchases.length}`,
+  const payload = {
+    supplierId: data.supplierId || null,
+    supplierName: data.supplier || data.supplierName || 'Direct Supplier',
+    amount: Number(data.amount || 0),
+    quantity: Number(data.quantity || 1),
+    tax: Number(data.tax || 0),
+    paymentMethod: (data.paymentMethod || 'CASH').toUpperCase(),
+    paidAmount: Number(data.paidAmount || data.amount || 0),
+    items: data.items || [
+      {
+        productName: data.products || 'Restocked Inventory',
+        quantity: Number(parseInt(data.quantity, 10) || 1),
+        unit: 'units',
+        unitPrice: Number(data.amount || 0),
+      },
+    ],
+    idempotencyKey: `PUR-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+  };
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    offlineQueue.enqueue('CREATE_PURCHASE', payload);
+    const queuedPurchase = {
+      id: `OFFLINE-PUR-${Date.now()}`,
+      purchaseNumber: `OFFLINE-PUR-${Date.now()}`,
       date: 'Today, Just now',
-      status: data.status || 'Received',
+      status: 'Received',
+      _isOfflineQueued: true,
       ...data,
     };
-    localPurchases = [newPurchase, ...localPurchases];
+    localPurchases = [queuedPurchase, ...localPurchases];
     setLocal(STORAGE_KEYS.PURCHASES, localPurchases);
-
-    const newTx = {
-      id: newPurchase.id,
-      product: data.products || 'Bulk Supplies',
-      type: 'Purchase',
-      quantity: `+${data.quantity || '1 lot'}`,
-      amount: `₹${data.amount}`,
-      date: 'Today',
-      status: 'Completed',
-    };
-    localTransactions = [newTx, ...localTransactions];
-    setLocal(STORAGE_KEYS.TRANSACTIONS, localTransactions);
-
-    return newPurchase;
+    return queuedPurchase;
   }
+
+  try {
+    return await apiClient.post('/purchases', payload);
+  } catch (error) {
+    if (isNetworkError(error)) {
+      offlineQueue.enqueue('CREATE_PURCHASE', payload);
+      const queuedPurchase = {
+        id: `OFFLINE-PUR-${Date.now()}`,
+        purchaseNumber: `OFFLINE-PUR-${Date.now()}`,
+        date: 'Today, Just now',
+        status: 'Received',
+        _isOfflineQueued: true,
+        ...data,
+      };
+      localPurchases = [queuedPurchase, ...localPurchases];
+      setLocal(STORAGE_KEYS.PURCHASES, localPurchases);
+      return queuedPurchase;
+    }
+    if (ENABLE_MOCK) {
+      const newPurchase = {
+        id: `PUR-${206 + localPurchases.length}`,
+        purchaseNumber: `PUR-${206 + localPurchases.length}`,
+        date: 'Today, Just now',
+        status: data.status || 'Received',
+        ...data,
+      };
+      localPurchases = [newPurchase, ...localPurchases];
+      setLocal(STORAGE_KEYS.PURCHASES, localPurchases);
+      return newPurchase;
+    }
+    throw error;
+  }
+};
+
+export const syncOfflineQueue = async () => {
+  return await offlineQueue.processQueue(apiClient);
+};
+
+export const getOfflineQueueCount = () => {
+  return offlineQueue.getPendingCount();
 };
 
 // -------------------------------------------------------------
@@ -1131,5 +1245,63 @@ export const queryAssistant = async (query) => {
     };
   }
 };
+
+// -------------------------------------------------------------
+// Voice & Multilingual Speech APIs (Section 40)
+// -------------------------------------------------------------
+export const transcribeAudio = async (audioData, languageHint = 'auto', format = 'audio/webm') => {
+  try {
+    const res = await apiClient.post('/voice/transcribe', {
+      audio: audioData,
+      languageHint,
+      format,
+    });
+    return res;
+  } catch (error) {
+    console.error('Audio transcription failed:', error);
+    throw error;
+  }
+};
+
+export const getVoiceLanguages = async () => {
+  try {
+    const res = await apiClient.get('/voice/languages');
+    return res;
+  } catch (error) {
+    console.warn('Could not fetch languages from backend:', error);
+    return null;
+  }
+};
+
+export const getLanguageCapabilities = async (code) => {
+  try {
+    const res = await apiClient.get(`/voice/languages/${code}/capabilities`);
+    return res;
+  } catch (error) {
+    console.warn(`Could not fetch capabilities for ${code}:`, error);
+    return null;
+  }
+};
+
+export const understandVoiceCommand = async (text, language = 'auto') => {
+  try {
+    const res = await apiClient.post('/voice/understand', { text, language });
+    return res;
+  } catch (error) {
+    const { parseNaturalVoiceCommand } = await import('./voiceParser.js');
+    return parseNaturalVoiceCommand(text, language, localProducts);
+  }
+};
+
+export const executeVoiceCommand = async (commandRequest) => {
+  try {
+    const res = await apiClient.post('/voice/command', commandRequest);
+    return res;
+  } catch (error) {
+    console.error('Execute voice command backend error:', error);
+    throw error;
+  }
+};
+
 
 

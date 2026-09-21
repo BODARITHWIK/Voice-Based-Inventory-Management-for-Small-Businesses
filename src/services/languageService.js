@@ -55,29 +55,29 @@ const MALAYALAM_ROMANIZED_KEYWORDS = [
  * Common Shopkeeper Typo & Colloquial Normalization Dictionary
  */
 const TYPO_REPLACEMENTS = [
-  // Units & Packets
+  // Units & Packets (with inflections: பாக்கெட்டுகளைச், ಪ್ಯಾಕೆಟ್ಗಳನ್ನು, പാക്കറ്റുകൾ, etc.)
   { pattern: /\b(pakets?|pakkets?|pkt|pkts|pckts?|packts?)\b/gi, replacement: 'packets' },
-  { pattern: /\b(packetlu|packettlu|pyaaketlu|ప్యాకెట్లు|पैकेट|பாக்கெட்|প্যাকেট|ਪੈਕਟ|پیکٹ|পেকেট|ପ୍ୟାକେଟ୍)\b/gi, replacement: 'packets' },
-  { pattern: /\b(kilolu|kilos?|kg|kgs|కేజీలు|కిలోలు|किलो|கிலோ|কিলো)\b/gi, replacement: 'kg' },
-  { pattern: /\b(litres?|liters?|ltr|ltrs|లీటర్లు|लीटर|லிட்டர்)\b/gi, replacement: 'litres' },
-  { pattern: /\b(dabbas?|dabbaalu|డబ్బా|डिब्बा|டப்பா)\b/gi, replacement: 'boxes' },
+  { pattern: /(?<![\p{L}\p{N}])(packetlu|packettlu|pyaaketlu|ప్యాకెట్లు|ప్యాకెట్ల|ప్యాకెట్|పాకెట్లను|పాకెట్లు|పాకెట్ల|पैकेटों|पैकेट|पॅकेट|पॅकेट्स|पाकिटां|पाकिटे|पाकीट|பாக்கெட்டுகளைச்|பாக்கெட்டுகளை|பாக்கெட்டுகள்|பாக்கெட்|প্যাকেটস|প্যাকেট|পেকেট|ਪੈਕਟਾਂ|ਪੈਕਟ|ਪੈਕੇਟ|પેકેટો|પેકેટ|પેકેટ્સ|پیکٹوں|پیکٹ|ପ୍ୟାକେଟ୍|ପ୍ୟାକେଟ|പാക്കറ്റുകൾ|പാക്കറ്റുകളെ|പാക്കറ്റ്|ಪ್ಯಾಕೆಟ್ಗಳು|ಪ್ಯಾಕೆಟ್ಗಳನ್ನು|ಪ್ಯಾಕೆಟ್|पुटकम्)(?![\p{L}\p{N}])/gui, replacement: 'packets' },
+  { pattern: /(?<![\p{L}\p{N}])(kilolu|kilos?|kg|kgs|కేజీలు|కిలోలు|కిలో|किलो|கிலோ|கிலோக்கள்|কিলো|ਕਿਲੋ|કિલો|କିଲୋ|കിലോ|ಕಿಲೋ)(?![\p{L}\p{N}])/gui, replacement: 'kg' },
+  { pattern: /(?<![\p{L}\p{N}])(litres?|liters?|ltr|ltrs|లీటర్లు|లీటర్|लीटर|லிட்டர்|লিটার|ਲਿਟਰ|લિટર|ଲିଟର|ലിറ്റർ|ಲೀಟರ್)(?![\p{L}\p{N}])/gui, replacement: 'litres' },
+  { pattern: /(?<![\p{L}\p{N}])(dabbas?|dabbaalu|డబ్బా|డిब्बा|டப்பா|ডাব্বা|ડબ્બો|ਡੱਬਾ|ଡବା|പെട്ടി|ಡಬ್ಬ)(?![\p{L}\p{N}])/gui, replacement: 'boxes' },
 
-  // Brand names & Common products
-  { pattern: /\b(maggie|magi|మేగి|మ్యాగీ|मैगी|மகி|ম্যাগি|ਮੈਗੀ|میگی)\b/gi, replacement: 'Maggi' },
-  { pattern: /\b(heritage\s*milk|హెరిటేజ్\s*మిల్క్|हेरिटेज\s*मिल्क)\b/gi, replacement: 'Heritage Milk' },
-  { pattern: /\b(parle g|parleg|parle-g|పార్లే జి|पारले जी)\b/gi, replacement: 'Parle-G' },
-  { pattern: /\b(colgat|kolgate|కోల్గేట్|कोलगेट)\b/gi, replacement: 'Colgate' },
-  { pattern: /\b(chawal|chaawal|biyyam|బియ్యం|चावल|அரிசி|চাল)\b/gi, replacement: 'Rice' },
-  { pattern: /\b(cheeni|sakkar|panchadara|పంచదార|चीनी|சர்க்கரை|চিনি)\b/gi, replacement: 'Sugar' },
-  { pattern: /\b(tel|nune|నూనె|तेल|எண்ணெய்|তেল)\b/gi, replacement: 'Oil' },
-  { pattern: /\b(dal|pappu|పప్పు|दाल|பருப்பு|ডাল)\b/gi, replacement: 'Dal' },
-  { pattern: /\b(atta|pindi|పిండి|आटा|மாவு|আটা)\b/gi, replacement: 'Atta' },
+  // Brand names & Common products (including inflections like मॅगीचे, మేగి, మ్యాగీ, మేగి, ಮ್ಯಾಗಿ, etc.)
+  { pattern: /(?<![\p{L}\p{N}])(maggie|magi|మేగి|మ్యాగీ|మ్యాగీని|మ్యాగీకి|मैगी|मॅगीचे|मॅगीला|मॅगी|மகி|மேகி|மேகியை|ಮ್ಯಾಗಿ|ಮ್ಯಾಗಿಯನ್ನು|മാഗി|മാഗിയെ|ম্যাগি|মেগী|મેગી|ਮੈਗੀ|ਮੈਗੀ\s*ਦੇ|ମ୍ୟାଗି|میگی)(?![\p{L}\p{N}])/gui, replacement: 'Maggi' },
+  { pattern: /(?<![\p{L}\p{N}])(heritage\s*milk|హెరిటేజ్\s*మిల్క్|हेरिटेज\s*मिल्क)(?![\p{L}\p{N}])/gui, replacement: 'Heritage Milk' },
+  { pattern: /(?<![\p{L}\p{N}])(parle\s*g|parleg|parle-g|పార్లే\s*జి|पारले\s*जी)(?![\p{L}\p{N}])/gui, replacement: 'Parle-G' },
+  { pattern: /(?<![\p{L}\p{N}])(colgat|kolgate|కోల్గేట్|कोलगेट)(?![\p{L}\p{N}])/gui, replacement: 'Colgate' },
+  { pattern: /(?<![\p{L}\p{N}])(chawal|chaawal|biyyam|బియ్యం|चावल|அரிசி|চাল|ਚਾਵਲ|ਚੋਖਾ)(?![\p{L}\p{N}])/gui, replacement: 'Rice' },
+  { pattern: /(?<![\p{L}\p{N}])(cheeni|sakkar|panchadara|పంచదార|चीनी|सखर|சர்க்கரை|চিনি|ਖੰਡ|ખાંડ)(?![\p{L}\p{N}])/gui, replacement: 'Sugar' },
+  { pattern: /(?<![\p{L}\p{N}])(tel|nune|నూనె|तेल|எண்ணெய்|তেল|ਤੇਲ|તેલ)(?![\p{L}\p{N}])/gui, replacement: 'Oil' },
+  { pattern: /(?<![\p{L}\p{N}])(dal|pappu|పప్పు|दाल|பருப்பு|ডাল|ਦਾਲ|દાળ)(?![\p{L}\p{N}])/gui, replacement: 'Dal' },
+  { pattern: /(?<![\p{L}\p{N}])(atta|pindi|పిండి|आटा|மாவு|আটা|ਆਟਾ|લોਟ)(?![\p{L}\p{N}])/gui, replacement: 'Atta' },
 
   // Verbs & Commands
-  { pattern: /\b(cheyi|chey|ceyyi|సేయి)\b/gi, replacement: 'cheyyi' },
-  { pattern: /\b(choopinchu|chupiyi|chupi|చూపించు)\b/gi, replacement: 'chupinchu' },
-  { pattern: /\b(entha|yentha|యెంత|ఎంత)\b/gi, replacement: 'entha' },
-  { pattern: /\b(undhi|undi|ఉంది)\b/gi, replacement: 'undi' },
+  { pattern: /(?<![\p{L}\p{N}])(cheyi|chey|ceyyi|సేయి)(?![\p{L}\p{N}])/gui, replacement: 'cheyyi' },
+  { pattern: /(?<![\p{L}\p{N}])(choopinchu|chupiyi|chupi|చూపించు)(?![\p{L}\p{N}])/gui, replacement: 'chupinchu' },
+  { pattern: /(?<![\p{L}\p{N}])(entha|yentha|యెంత|ఎంత)(?![\p{L}\p{N}])/gui, replacement: 'entha' },
+  { pattern: /(?<![\p{L}\p{N}])(undhi|undi|ఉంది)(?![\p{L}\p{N}])/gui, replacement: 'undi' },
   { pattern: /\b(stok|stck|stoc)\b/gi, replacement: 'stock' },
   { pattern: /\b(sel|sael)\b/gi, replacement: 'sale' },
   { pattern: /\b(ad|aadd)\b/gi, replacement: 'add' },

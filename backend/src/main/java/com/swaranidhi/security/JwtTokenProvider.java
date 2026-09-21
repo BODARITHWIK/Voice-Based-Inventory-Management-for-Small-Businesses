@@ -21,7 +21,29 @@ public class JwtTokenProvider {
     private final long jwtExpirationInMs;
 
     public JwtTokenProvider(@Value("${swaranidhi.jwt.secret}") String secret,
-                            @Value("${swaranidhi.jwt.expiration-ms}") long jwtExpirationInMs) {
+                            @Value("${swaranidhi.jwt.expiration-ms}") long jwtExpirationInMs,
+                            org.springframework.core.env.Environment environment) {
+        // Enforce strict production requirements
+        boolean isProduction = false;
+        if (environment != null && environment.getActiveProfiles() != null) {
+            for (String profile : environment.getActiveProfiles()) {
+                if ("prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile)) {
+                    isProduction = true;
+                    break;
+                }
+            }
+        }
+
+        if (isProduction) {
+            String envSecret = environment.getProperty("SWARANIDHI_JWT_SECRET");
+            if (envSecret == null || envSecret.isBlank()) {
+                envSecret = environment.getProperty("JWT_SECRET");
+            }
+            if (envSecret == null || envSecret.isBlank() || envSecret.contains("dev-only") || envSecret.contains("super-secret-jwt-key")) {
+                throw new IllegalStateException("CRITICAL SECURITY ERROR: SWARANIDHI_JWT_SECRET environment variable is strictly required in production profile. Application startup halted.");
+            }
+        }
+
         // Ensure key is at least 256 bits (32 bytes)
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {

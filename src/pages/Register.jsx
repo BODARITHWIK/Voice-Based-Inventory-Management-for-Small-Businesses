@@ -29,8 +29,11 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { INDIAN_LANGUAGES } from '../config/languages';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Register() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { register, loading, isAuthenticated } = useAuth();
 
@@ -75,7 +78,7 @@ export default function Register() {
       !formData.email.trim() ||
       !formData.password
     ) {
-      setError('Please fill in all required fields.');
+      setError(t('auth.fillRequired'));
       return;
     }
 
@@ -146,7 +149,7 @@ export default function Register() {
             SWARANIDHI
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5, fontWeight: 500 }}>
-            "Speak. Manage. Grow." — Create Your Shop Account
+            {t('auth.registerSubtitle')}
           </Typography>
         </Box>
 
@@ -159,7 +162,7 @@ export default function Register() {
 
           <form onSubmit={handleSubmit}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#065f46', mb: 1.5 }}>
-              🏪 Shop & Business Details
+              🏪 {t('settings.businessTab')}
             </Typography>
 
             <Grid container spacing={2}>
@@ -167,7 +170,7 @@ export default function Register() {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Business / Shop Name *"
+                  label={t('auth.businessName')}
                   placeholder="e.g. Balaji Kirana & General Store"
                   value={formData.businessName}
                   onChange={handleChange('businessName')}
@@ -186,7 +189,7 @@ export default function Register() {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Owner Full Name *"
+                  label={t('auth.fullName')}
                   placeholder="e.g. Ramesh Kumar"
                   value={formData.ownerName}
                   onChange={handleChange('ownerName')}
@@ -205,7 +208,7 @@ export default function Register() {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Phone Number *"
+                  label={t('auth.phone')}
                   placeholder="9876543210"
                   value={formData.phone}
                   onChange={handleChange('phone')}
@@ -225,7 +228,7 @@ export default function Register() {
                   fullWidth
                   size="small"
                   type="email"
-                  label="Email Address *"
+                  label={t('auth.email')}
                   placeholder="owner@kirana.com"
                   value={formData.email}
                   onChange={handleChange('email')}
@@ -316,9 +319,11 @@ export default function Register() {
                     ),
                   }}
                 >
-                  <MenuItem value="en">English (Indian Retail)</MenuItem>
-                  <MenuItem value="te">తెలుగు (Telugu)</MenuItem>
-                  <MenuItem value="hi">हिन्दी (Hindi)</MenuItem>
+                  {INDIAN_LANGUAGES.map((l) => (
+                    <MenuItem key={l.code} value={l.code}>
+                      {l.nativeName} ({l.name})
+                    </MenuItem>
+                  ))}
                 </TextField>
               </Grid>
             </Grid>
@@ -326,7 +331,7 @@ export default function Register() {
             <Divider sx={{ my: 2.5 }} />
 
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#065f46', mb: 1.5 }}>
-              🔒 Security & Password
+              🔒 {t('settings.securityTab')}
             </Typography>
 
             <Grid container spacing={2}>
@@ -335,7 +340,7 @@ export default function Register() {
                   fullWidth
                   size="small"
                   type={showPassword ? 'text' : 'password'}
-                  label="Password *"
+                  label={t('auth.password')}
                   value={formData.password}
                   onChange={handleChange('password')}
                   InputProps={{
@@ -365,7 +370,7 @@ export default function Register() {
                   fullWidth
                   size="small"
                   type={showPassword ? 'text' : 'password'}
-                  label="Confirm Password *"
+                  label={t('auth.confirmPassword')}
                   value={formData.confirmPassword}
                   onChange={handleChange('confirmPassword')}
                   InputProps={{
@@ -397,14 +402,11 @@ export default function Register() {
                 boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)',
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Create Shop Account'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : t('auth.registerBtn')}
             </Button>
           </form>
 
           <Stack direction="row" justifyContent="center" alignItems="center" sx={{ mt: 3 }} spacing={1}>
-            <Typography variant="body2" sx={{ color: '#64748b' }}>
-              Already have a shop account?
-            </Typography>
             <Button
               component={RouterLink}
               to="/login"
@@ -417,7 +419,7 @@ export default function Register() {
                 '&:hover': { textDecoration: 'underline' },
               }}
             >
-              Login here
+              {t('auth.haveAccount')}
             </Button>
           </Stack>
         </CardContent>

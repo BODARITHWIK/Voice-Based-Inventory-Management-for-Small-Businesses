@@ -2,10 +2,27 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Default host based on platform: 10.0.2.2 for Android emulator, localhost for iOS/web
-const DEFAULT_BASE_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:8080/api'
-  : 'http://localhost:8080/api';
+// Environment-based API URL configuration supporting development, staging, and production
+const APP_ENV = (typeof process !== 'undefined' && process.env && (process.env.EXPO_PUBLIC_APP_ENV || process.env.NODE_ENV)) || 'development';
+
+export const getEnvironmentBaseUrl = () => {
+  // Explicit environment variable takes precedence across all environments
+  const explicitUrl = typeof process !== 'undefined' && process.env && (process.env.EXPO_PUBLIC_API_URL || process.env.REACT_APP_API_URL);
+  if (explicitUrl) {
+    return explicitUrl.endsWith('/api') ? explicitUrl : `${explicitUrl}/api`;
+  }
+
+  if (APP_ENV === 'production') {
+    return 'https://api.swaranidhi.com/api';
+  }
+  if (APP_ENV === 'staging') {
+    return 'https://staging-api.swaranidhi.com/api';
+  }
+  // Development environment only
+  return Platform.OS === 'android' ? 'http://10.0.2.2:8080/api' : 'http://localhost:8080/api';
+};
+
+const DEFAULT_BASE_URL = getEnvironmentBaseUrl();
 
 const api = axios.create({
   baseURL: DEFAULT_BASE_URL,
@@ -173,6 +190,50 @@ export const recordCustomerPayment = async (customerId, amount, type = 'PAYMENT'
     notes,
   });
   return res.data?.data;
+};
+
+// Suppliers & Vendors
+export const getSuppliers = async (search = '') => {
+  const url = search ? `/suppliers?search=${encodeURIComponent(search)}` : '/suppliers';
+  const res = await api.get(url);
+  return res.data?.data || [];
+};
+
+export const createSupplier = async (supplierData) => {
+  const res = await api.post('/suppliers', supplierData);
+  return res.data?.data;
+};
+
+// Purchases & Inward Stock
+export const getPurchases = async () => {
+  const res = await api.get('/purchases');
+  return res.data?.data || [];
+};
+
+export const createPurchase = async (purchaseData) => {
+  const res = await api.post('/purchases', purchaseData);
+  return res.data?.data;
+};
+
+// Reports & Business Analytics
+export const getReports = async (range = 'This Month') => {
+  const res = await api.get(`/reports/dashboard?range=${encodeURIComponent(range)}`);
+  return res.data?.data || {};
+};
+
+// Register
+export const register = async (userData) => {
+  const res = await api.post('/auth/register', userData);
+  if (res.data?.data?.token) {
+    await AsyncStorage.setItem('@auth_token', res.data.data.token);
+    await AsyncStorage.setItem('@user_info', JSON.stringify(res.data.data.user || {}));
+  }
+  return res.data;
+};
+
+export const logout = async () => {
+  await AsyncStorage.removeItem('@auth_token');
+  await AsyncStorage.removeItem('@user_info');
 };
 
 // ================= OFFLINE QUEUE MANAGER =================

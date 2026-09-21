@@ -74,9 +74,8 @@ public class PurchaseService {
             throw new BadRequestException("Purchase must have at least one item.");
         }
 
-        // 2. Generate unique purchase number
-        String datePrefix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
-        String purchaseNumber = "PUR-" + datePrefix + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        // 2. Generate unique collision-resistant purchase number
+        String purchaseNumber = generateUniquePurchaseNumber(businessId);
 
         // 3. Resolve Supplier
         Supplier supplier = null;
@@ -206,5 +205,21 @@ public class PurchaseService {
                 "Recorded purchase " + purchaseNumber + " total ₹" + total + " from " + supplierName);
 
         return savedPurchase;
+    }
+
+    public String generateUniquePurchaseNumber(Long businessId) {
+        String datePrefix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String purchaseNumber;
+        int attempts = 0;
+        do {
+            String randomPart = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            purchaseNumber = "PUR-" + datePrefix + "-" + randomPart;
+            attempts++;
+            if (attempts > 10) {
+                purchaseNumber = "PUR-" + datePrefix + "-" + System.currentTimeMillis() + "-" + randomPart;
+                break;
+            }
+        } while (purchaseRepository.findByPurchaseNumberAndBusinessId(purchaseNumber, businessId).isPresent());
+        return purchaseNumber;
     }
 }

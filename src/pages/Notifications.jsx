@@ -26,9 +26,10 @@ import PageHeader from '../components/PageHeader';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { useSimpleMode } from '../context/SimpleModeContext';
+import { getLocalizedProduct, getLocalizedDateString } from '../utils/productLocalization';
 
 export default function Notifications({ showToast }) {
-  const { t } = useLanguage();
+  const { t, selectedLanguage } = useLanguage();
   const { simpleMode } = useSimpleMode();
   const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState('ALL'); // 'ALL' | 'UNREAD' | 'STOCK' | 'KHATA'
@@ -56,7 +57,7 @@ export default function Notifications({ showToast }) {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
-      showToast?.('Notification marked as read', 'success');
+      showToast?.(t('notifications.markAsRead'), 'success');
     } catch (e) {
       console.error(e);
     }
@@ -66,7 +67,7 @@ export default function Notifications({ showToast }) {
     try {
       await markAllNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      showToast?.('All notifications marked as read', 'success');
+      showToast?.(t('notifications.allMarkedRead'), 'success');
     } catch (e) {
       console.error(e);
     }
@@ -98,8 +99,8 @@ export default function Notifications({ showToast }) {
   return (
     <Box>
       <PageHeader
-        title="Store Alerts & Notifications"
-        subtitle="Stay updated on inventory levels, customer credit, and order syncs"
+        title={t('notifications.title')}
+        subtitle={t('notifications.subtitle')}
         action={
           <Button
             variant="outlined"
@@ -113,7 +114,7 @@ export default function Notifications({ showToast }) {
               '&:hover': { borderColor: '#059669', color: '#059669', bgcolor: '#ecfdf5' },
             }}
           >
-            Mark All as Read
+            {t('notifications.markAsRead')}
           </Button>
         }
       />
@@ -121,10 +122,10 @@ export default function Notifications({ showToast }) {
       {/* Filter Tabs */}
       <Stack direction="row" spacing={1.5} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
         {[
-          { key: 'ALL', label: 'All Alerts' },
-          { key: 'UNREAD', label: `Unread (${notifications.filter((n) => !n.read).length})` },
-          { key: 'STOCK', label: 'Stock Alerts' },
-          { key: 'KHATA', label: 'Khata / Credit' },
+          { key: 'ALL', label: t('notifications.filterAll') },
+          { key: 'UNREAD', label: `${t('notifications.filterUnread')} (${notifications.filter((n) => !n.read).length})` },
+          { key: 'STOCK', label: t('notifications.filterStock') },
+          { key: 'KHATA', label: t('notifications.filterKhata') },
         ].map((tab) => (
           <Chip
             key={tab.key}
@@ -193,7 +194,7 @@ export default function Notifications({ showToast }) {
                     <Box>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="subtitle2" sx={{ fontWeight: item.read ? 600 : 800, color: '#0f172a' }}>
-                          {item.title}
+                          {getLocalizedProduct(item.title, selectedLanguage)}
                         </Typography>
                         {!item.read && (
                           <Chip
@@ -213,13 +214,13 @@ export default function Notifications({ showToast }) {
                         {item.message || item.desc}
                       </Typography>
                       <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.72rem', display: 'block', mt: 0.5 }}>
-                        {item.createdAt || item.time || 'Today'}
+                        {getLocalizedDateString(item.createdAt || item.time || 'Today', selectedLanguage)}
                       </Typography>
                     </Box>
                   </Box>
 
                   {!item.read && (
-                    <Tooltip title="Mark as read">
+                    <Tooltip title={t('notifications.markAsRead')}>
                       <IconButton
                         size="small"
                         onClick={() => handleMarkAsRead(item.id)}

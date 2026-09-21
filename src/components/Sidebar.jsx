@@ -35,19 +35,19 @@ const DRAWER_WIDTH = 260;
 const Sidebar = ({ mobileOpen, onMobileClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, selectedLanguage } = useLanguage();
   const { simpleMode } = useSimpleMode();
 
   const menuItems = [
-    { text: t('nav.dashboard'), path: '/dashboard', icon: <DashboardIcon /> },
-    { text: t('nav.products'), path: '/products', icon: <InventoryIcon /> },
-    { text: t('nav.sales'), path: '/sales', icon: <PointOfSaleIcon /> },
-    { text: t('nav.purchases'), path: '/purchases', icon: <ShoppingCartIcon /> },
-    { text: t('nav.suppliers'), path: '/suppliers', icon: <LocalShippingIcon /> },
-    { text: t('nav.customers'), path: '/customers', icon: <PeopleIcon /> },
-    { text: t('nav.reports'), path: '/reports', icon: <AssessmentIcon /> },
-    { text: t('nav.notifications') || 'Alerts', path: '/notifications', icon: <NotificationsActiveIcon /> },
-    { text: t('nav.settings'), path: '/settings', icon: <SettingsIcon /> },
+    { text: t('nav.dashboard'), english: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+    { text: t('nav.products'), english: 'My Stock', path: '/products', icon: <InventoryIcon /> },
+    { text: t('nav.sales'), english: 'Sales', path: '/sales', icon: <PointOfSaleIcon /> },
+    { text: t('nav.purchases'), english: 'Purchases', path: '/purchases', icon: <ShoppingCartIcon /> },
+    { text: t('nav.suppliers'), english: 'Suppliers', path: '/suppliers', icon: <LocalShippingIcon /> },
+    { text: t('nav.customers'), english: 'Customers (Khata)', path: '/customers', icon: <PeopleIcon /> },
+    { text: t('nav.reports'), english: 'Reports', path: '/reports', icon: <AssessmentIcon /> },
+    { text: t('nav.notifications') || 'Alerts', english: 'Alerts', path: '/notifications', icon: <NotificationsActiveIcon /> },
+    { text: t('nav.settings'), english: 'Settings', path: '/settings', icon: <SettingsIcon /> },
   ];
 
   const handleNavigate = (path) => {
@@ -163,9 +163,17 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
                   </ListItemIcon>
                   <ListItemText
                     primary={item.text}
+                    secondary={selectedLanguage !== 'en' && item.english !== item.text ? item.english : null}
                     primaryTypographyProps={{
                       fontSize: simpleMode ? '0.98rem' : '0.88rem',
                       fontWeight: isActive ? 800 : 600,
+                      lineHeight: 1.2,
+                    }}
+                    secondaryTypographyProps={{
+                      fontSize: '0.68rem',
+                      color: isActive ? '#059669' : '#94a3b8',
+                      fontWeight: 600,
+                      letterSpacing: '0.2px',
                     }}
                   />
                   {item.path === '/products' && (

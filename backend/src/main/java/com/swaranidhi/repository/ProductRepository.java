@@ -21,6 +21,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Optional<Product> findByIdAndBusinessId(Long id, Long businessId);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.id = :id AND p.business.id = :businessId")
+    Optional<Product> findByIdAndBusinessIdWithLock(@Param("id") Long id, @Param("businessId") Long businessId);
+
     Optional<Product> findByBusinessIdAndSku(Long businessId, String sku);
 
     Optional<Product> findByBusinessIdAndBarcode(Long businessId, String barcode);

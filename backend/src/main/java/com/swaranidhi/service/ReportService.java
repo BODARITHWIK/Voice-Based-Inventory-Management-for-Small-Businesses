@@ -165,6 +165,48 @@ public class ReportService {
         return report;
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDashboardReport(Long businessId, String range) {
+        LocalDate start;
+        LocalDate end = LocalDate.now();
+        if ("Today".equalsIgnoreCase(range)) {
+            start = LocalDate.now();
+        } else if ("This Week".equalsIgnoreCase(range)) {
+            start = LocalDate.now().minusDays(7);
+        } else {
+            // Default "This Month"
+            start = LocalDate.now().withDayOfMonth(1);
+        }
+
+        Map<String, Object> sales = getSalesReport(businessId, start, end);
+        Map<String, Object> purchases = getPurchasesReport(businessId, start, end);
+        Map<String, Object> profit = getProfitReport(businessId, start, end);
+
+        Map<String, Object> salesSummary = Map.of(
+                "totalRevenue", "₹" + sales.get("totalRevenue"),
+                "orderCount", sales.get("totalSalesCount")
+        );
+        Map<String, Object> purchaseSummary = Map.of(
+                "totalPurchases", "₹" + purchases.get("totalCost"),
+                "ordersPlaced", purchases.get("totalPurchasesCount")
+        );
+        Map<String, Object> profitSummary = Map.of(
+                "grossProfit", "₹" + profit.get("grossProfit"),
+                "profitMargin", profit.get("profitMarginPercentage") + "%"
+        );
+
+        return Map.of(
+                "stats", Map.of(
+                        "salesSummary", salesSummary,
+                        "purchaseSummary", purchaseSummary,
+                        "profitSummary", profitSummary
+                ),
+                "salesReport", sales,
+                "purchasesReport", purchases,
+                "profitReport", profit
+        );
+    }
+
     public String generateSalesCsv(Long businessId) {
         List<Sale> sales = saleRepository.findByBusinessIdOrderByCreatedAtDesc(businessId);
         StringBuilder sb = new StringBuilder();

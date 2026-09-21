@@ -53,9 +53,14 @@ import {
 import { parseNaturalVoiceCommand } from '../services/voiceParser';
 import { speakIndianText } from '../services/speechService';
 import { useLanguage } from '../context/LanguageContext';
+import {
+  getLocalizedProduct,
+  getLocalizedCategory,
+  getLocalizedUnit,
+} from '../utils/productLocalization';
 
 export default function ScanStockModal({ open, onClose, onStockUpdated }) {
-  const { currentLanguage, developerMode } = useLanguage();
+  const { getSpeechLangCode, developerMode, selectedLanguage } = useLanguage();
 
   // Step states: 'CAPTURE' | 'ANALYZING' | 'RESULT' | 'ERROR' | 'OFFLINE_SAVED'
   const [step, setStep] = useState('CAPTURE');
@@ -304,7 +309,7 @@ export default function ScanStockModal({ open, onClose, onStockUpdated }) {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = currentLanguage || 'te-IN';
+    recognition.lang = getSpeechLangCode();
     recognition.continuous = false;
     recognition.interimResults = false;
 
@@ -762,10 +767,10 @@ export default function ScanStockModal({ open, onClose, onStockUpdated }) {
                         label={
                           <Box>
                             <Typography variant="body2" fontWeight="medium">
-                              {p.productName}
+                              {getLocalizedProduct(p.productName, selectedLanguage)}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              Qty: {p.quantity || 'Undetermined'} {p.unit} • {p.category}
+                              Qty: {p.quantity || 'Undetermined'} {getLocalizedUnit(p.unit, selectedLanguage)} • {getLocalizedCategory(p.category, selectedLanguage)}
                             </Typography>
                           </Box>
                         }
@@ -782,10 +787,10 @@ export default function ScanStockModal({ open, onClose, onStockUpdated }) {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Box>
                       <Typography variant="h6" fontWeight="bold" color="text.primary">
-                        {editForm.productName || 'Unknown Product'}
+                        {getLocalizedProduct(editForm.productName, selectedLanguage) || 'Unknown Product'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Category: {editForm.category} • Unit: {editForm.unit}
+                        Category: {getLocalizedCategory(editForm.category, selectedLanguage)} • Unit: {getLocalizedUnit(editForm.unit, selectedLanguage)}
                       </Typography>
                     </Box>
                     <IconButton size="small" onClick={() => setIsEditing(!isEditing)} color="primary">
@@ -800,7 +805,7 @@ export default function ScanStockModal({ open, onClose, onStockUpdated }) {
                         Detected Quantity:
                       </Typography>
                       <Typography variant="h5" fontWeight="bold" color="primary.main">
-                        {editForm.quantity} {editForm.unit}
+                        {editForm.quantity} {getLocalizedUnit(editForm.unit, selectedLanguage)}
                       </Typography>
                     </Box>
                   ) : (

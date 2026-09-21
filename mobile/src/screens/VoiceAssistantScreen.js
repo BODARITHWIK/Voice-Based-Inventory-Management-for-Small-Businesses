@@ -96,20 +96,36 @@ export default function VoiceAssistantScreen() {
     }
   };
 
-  const simulateMic = () => {
-    setIsListening(true);
-    // Simulate voice listening pulse for mobile preview
-    setTimeout(() => {
-      setIsListening(false);
-      const samples = [
-        "Today's total sales",
-        'Which products are low on stock?',
-        'Tell me customer khata pending dues',
-        'Are there any expiring products?',
-      ];
-      const randomSample = samples[Math.floor(Math.random() * samples.length)];
-      handleSend(randomSample);
-    }, 1500);
+  const handleMicPress = () => {
+    // Check if browser/environment Web Speech API is supported
+    if (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+      try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = selectedLanguage === 'en' ? 'en-IN' : `${selectedLanguage}-IN`;
+        recognition.onstart = () => setIsListening(true);
+        recognition.onresult = (event) => {
+          setIsListening(false);
+          const transcript = event.results[0][0].transcript;
+          if (transcript) handleSend(transcript);
+        };
+        recognition.onerror = () => {
+          setIsListening(false);
+          Alert.alert('Microphone', 'Speech recognition error. Please try again or type below.');
+        };
+        recognition.onend = () => setIsListening(false);
+        recognition.start();
+        return;
+      } catch (err) {
+        console.warn('SpeechRecognition failed:', err);
+      }
+    }
+
+    // Truthful notification if device microphone STT engine is not available
+    Alert.alert(
+      'Voice STT Not Configured',
+      'Microphone speech recognition requires native device voice engine or Web Speech API. Please type your question in the box below or tap a quick query.'
+    );
   };
 
   return (
@@ -190,7 +206,7 @@ export default function VoiceAssistantScreen() {
       <View style={styles.inputContainer}>
         <TouchableOpacity
           style={[styles.micButton, isListening && styles.micButtonListening]}
-          onPress={simulateMic}
+          onPress={handleMicPress}
         >
           <Text style={styles.micEmoji}>{isListening ? '🔴' : '🎤'}</Text>
         </TouchableOpacity>

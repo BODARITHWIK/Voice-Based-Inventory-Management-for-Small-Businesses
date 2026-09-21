@@ -7,7 +7,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "products")
+@Table(name = "products", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_products_business_sku", columnNames = {"business_id", "sku"}),
+    @UniqueConstraint(name = "uk_products_business_barcode", columnNames = {"business_id", "barcode"})
+})
 public class Product {
 
     @Id
@@ -59,6 +62,9 @@ public class Product {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @Version
+    private Long version;
 
     public Product() {}
 
@@ -168,4 +174,7 @@ public class Product {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }

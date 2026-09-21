@@ -20,6 +20,7 @@ import {
   ListItem,
   ListItemText,
   Chip,
+  Paper,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import StoreIcon from '@mui/icons-material/Store';
@@ -199,7 +200,7 @@ const Settings = ({ showToast }) => {
 
               <Box sx={{ mt: 3 }}>
                 <Button variant="contained" color="primary" onClick={() => handleSave(t('settings.profileTab'))} sx={{ fontWeight: 700 }}>
-                  Save Profile
+                  {t('settings.saveProfile')}
                 </Button>
               </Box>
             </Box>
@@ -300,7 +301,7 @@ const Settings = ({ showToast }) => {
 
               <Box sx={{ mt: 3 }}>
                 <Button variant="contained" color="primary" onClick={() => handleSave(t('settings.businessTab'))} sx={{ fontWeight: 700 }}>
-                  Save Shop Details
+                  {t('settings.saveShop')}
                 </Button>
               </Box>
             </Box>
@@ -400,7 +401,7 @@ const Settings = ({ showToast }) => {
 
               <Box sx={{ mt: 3.5 }}>
                 <Button variant="contained" color="primary" onClick={() => handleSave(t('settings.inventoryTab'))} sx={{ fontWeight: 700 }}>
-                  Save Stock Rules
+                  {t('settings.saveStockRules')}
                 </Button>
               </Box>
             </Box>
@@ -410,27 +411,27 @@ const Settings = ({ showToast }) => {
           {activeTab === 3 && (
             <Box maxWidth={760}>
               <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>
-                🇮🇳 Multilingual Voice & AI Intelligence
+                🇮🇳 {t('settings.voiceTitle')}
               </Typography>
               <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mb: 3 }}>
-                India-first speech architecture: 3 independent layers for UI, Speech Understanding, and Spoken Response.
+                {t('settings.voiceSub')}
               </Typography>
 
               <Stack spacing={3}>
                 {/* 3-LAYER ARCHITECTURE CONTROLS (Section 3) */}
                 <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #e2e8f0', borderRadius: 3, backgroundColor: '#f8fafc' }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a', mb: 0.5 }}>
-                    Three Language Layers (Independently Configurable)
+                    {t('settings.threeLayersTitle')}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mb: 2.5 }}>
-                    Configure what you see, what you speak, and how Swaranidhi replies.
+                    {t('settings.threeLayersDesc')}
                   </Typography>
 
                   <Grid container spacing={2}>
                     {/* Layer 1: UI Language */}
                     <Grid item xs={12} sm={4}>
                       <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', display: 'block', mb: 0.8 }}>
-                        LAYER 1: UI Language
+                        {t('settings.layer1')}
                       </Typography>
                       <TextField
                         select
@@ -450,7 +451,7 @@ const Settings = ({ showToast }) => {
                     {/* Layer 2: Input / Understanding Language */}
                     <Grid item xs={12} sm={4}>
                       <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', display: 'block', mb: 0.8 }}>
-                        LAYER 2: Voice & Text Input
+                        {t('settings.layer2')}
                       </Typography>
                       <TextField
                         select
@@ -471,7 +472,7 @@ const Settings = ({ showToast }) => {
                     {/* Layer 3: Response Language */}
                     <Grid item xs={12} sm={4}>
                       <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', display: 'block', mb: 0.8 }}>
-                        LAYER 3: Response Language
+                        {t('settings.layer3')}
                       </Typography>
                       <TextField
                         select

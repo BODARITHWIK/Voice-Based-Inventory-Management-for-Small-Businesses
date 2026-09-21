@@ -7,14 +7,14 @@ import {
 import TranslateIcon from '@mui/icons-material/Translate';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useLanguage } from '../context/LanguageContext';
-import { getLanguageByCode } from '../services/indianLanguages';
+import { getLanguageByCodeOrLocale } from '../config/languages';
 import LanguageSelectorModal from './LanguageSelectorModal';
 
 const LanguageSelector = ({ variant = 'navbar' }) => {
-  const { uiLanguage, inputLanguage } = useLanguage();
+  const { selectedLanguage, selectedLocale, inputLanguage } = useLanguage();
   const [modalOpen, setModalOpen] = useState(false);
 
-  const currentLang = getLanguageByCode(uiLanguage);
+  const currentLang = getLanguageByCodeOrLocale(selectedLocale || selectedLanguage);
 
   return (
     <>
@@ -52,7 +52,7 @@ const LanguageSelector = ({ variant = 'navbar' }) => {
             color: '#1e293b',
           }}
         >
-          {inputLanguage === 'auto' ? 'Auto' : currentLang.nativeName}
+          {inputLanguage === 'auto' ? 'Auto' : `${currentLang.nativeName} (${currentLang.code.toUpperCase()})`}
         </Typography>
       </Button>
 

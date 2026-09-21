@@ -24,11 +24,19 @@ import MicIcon from '@mui/icons-material/Mic';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useLanguage } from '../context/LanguageContext';
-import { INDIAN_LANGUAGES } from '../services/indianLanguages';
+import { INDIAN_LANGUAGES } from '../config/languages';
 
 const LanguageSelectorModal = ({ open, onClose }) => {
-  const { uiLanguage, setUiLanguage, inputLanguage, setInputLanguage, setLanguage } = useLanguage();
+  const {
+    selectedLanguage,
+    selectedLocale,
+    setSelectedLanguageAndLocale,
+    setInputLanguage,
+    backendCapabilities,
+    t,
+  } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [regionTab, setRegionTab] = useState('ALL');
 
@@ -40,6 +48,7 @@ const LanguageSelectorModal = ({ open, onClose }) => {
         lang.name.toLowerCase().includes(q) ||
         lang.nativeName.toLowerCase().includes(q) ||
         lang.code.toLowerCase().includes(q) ||
+        lang.locale.toLowerCase().includes(q) ||
         lang.region.toLowerCase().includes(q);
 
       const matchesRegion =
@@ -56,21 +65,36 @@ const LanguageSelectorModal = ({ open, onClose }) => {
       onClose();
       return;
     }
-    // Update UI language & Input language
-    setUiLanguage(lang.shortCode || lang.code);
-    setLanguage(lang.shortCode || lang.code);
-    setInputLanguage(lang.code);
+    setSelectedLanguageAndLocale(lang.code, lang.locale);
     onClose();
   };
 
   const isCurrentLanguage = (lang) => {
     if (!lang) return false;
-    const current = (uiLanguage || '').toLowerCase();
+    const currentCode = (selectedLanguage || '').toLowerCase();
+    const currentLocale = (selectedLocale || '').toLowerCase();
     return (
-      current === lang.shortCode?.toLowerCase() ||
-      current === lang.code?.toLowerCase() ||
-      current.startsWith(lang.shortCode?.toLowerCase())
+      currentCode === lang.code.toLowerCase() ||
+      currentLocale === lang.locale.toLowerCase()
     );
+  };
+
+  const getVoiceCapability = (lang) => {
+    if (lang.browserSpeechSupported) {
+      return { supported: true, label: '✓ Voice', color: 'success' };
+    }
+    // Check if backend cloud speech supports this locale
+    const backendCap = Array.isArray(backendCapabilities) &&
+      backendCapabilities.find((b) => b.code === lang.code || b.locale === lang.locale);
+    if (backendCap && backendCap.speechRecognitionSupported) {
+      return { supported: true, label: '✓ Voice (Cloud)', color: 'info' };
+    }
+    return {
+      supported: false,
+      label: '⚠ Voice Unavailable',
+      color: 'warning',
+      tooltip: `Browser lacks offline ASR for ${lang.name}. Configure a Cloud Speech Provider (Whisper or Bhashini) to enable microphone.`,
+    };
   };
 
   return (
@@ -90,10 +114,10 @@ const LanguageSelectorModal = ({ open, onClose }) => {
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
         <Box>
           <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span>🇮🇳</span> Supported Indian Languages
+            <span>🇮🇳</span> {t('languageModal.title') || 'Indian Languages & Microphone Setup'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Speak and manage in your language. 22 official languages of India + English.
+            {t('languageModal.subtitle') || 'Speak and manage in your language. 22 official languages of India + English with exact BCP-47 locales.'}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small">
@@ -101,78 +125,86 @@ const LanguageSelectorModal = ({ open, onClose }) => {
         </IconButton>
       </DialogTitle>
 
-      <DialogContent dividers sx={{ pt: 2 }}>
-        {/* Search Bar */}
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search your language... (e.g., Telugu, हिन्दी, Tamil, Kannada)"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          autoFocus
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ mb: 2 }}
-        />
+      <DialogContent sx={{ pt: 1 }}>
+        {/* Search & Filter bar */}
+        <Box sx={{ display: 'flex', gap: 1.5, mb: 2, mt: 0.5, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder={t('languageModal.searchPlaceholder') || 'Search language by name, script, or state...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: '#94a3b8', fontSize: 20 }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                backgroundColor: '#f8fafc',
+              },
+            }}
+          />
 
-        {/* Region Filter Tabs */}
+          {/* Quick Auto-Detect Button */}
+          <Button
+            variant="outlined"
+            onClick={() => handleSelect('auto')}
+            startIcon={<AutoAwesomeIcon sx={{ color: '#2563eb' }} />}
+            sx={{
+              whiteSpace: 'nowrap',
+              borderRadius: 2,
+              px: 2,
+              borderColor: '#e2e8f0',
+              color: '#334155',
+              fontWeight: 600,
+              textTransform: 'none',
+              '&:hover': {
+                borderColor: '#2563eb',
+                backgroundColor: '#eff6ff',
+              },
+            }}
+          >
+            Auto Detect
+          </Button>
+        </Box>
+
+        {/* Region Tabs */}
         <Tabs
           value={regionTab}
-          onChange={(e, val) => setRegionTab(val)}
+          onChange={(_, val) => setRegionTab(val)}
           variant="scrollable"
           scrollButtons="auto"
-          sx={{ mb: 2.5, minHeight: 36 }}
-        >
-          <Tab label="All Languages (23+)" value="ALL" sx={{ minHeight: 36, py: 0.5, fontSize: '0.82rem' }} />
-          <Tab label="South" value="South" sx={{ minHeight: 36, py: 0.5, fontSize: '0.82rem' }} />
-          <Tab label="North / Central" value="North" sx={{ minHeight: 36, py: 0.5, fontSize: '0.82rem' }} />
-          <Tab label="East" value="East" sx={{ minHeight: 36, py: 0.5, fontSize: '0.82rem' }} />
-          <Tab label="West" value="West" sx={{ minHeight: 36, py: 0.5, fontSize: '0.82rem' }} />
-          <Tab label="North-East" value="North-East" sx={{ minHeight: 36, py: 0.5, fontSize: '0.82rem' }} />
-        </Tabs>
-
-        {/* Auto Detect Option */}
-        <Paper
-          elevation={0}
-          onClick={() => handleSelect('auto')}
           sx={{
-            p: 1.5,
             mb: 2,
-            border: inputLanguage === 'auto' ? '2px solid #2563eb' : '1px solid #e2e8f0',
-            bgcolor: inputLanguage === 'auto' ? '#eff6ff' : '#f8fafc',
-            borderRadius: 2,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            transition: 'all 0.2s ease',
-            '&:hover': { bgcolor: '#f1f5f9', borderColor: '#cbd5e1' },
+            borderBottom: '1px solid #e2e8f0',
+            minHeight: 38,
+            '& .MuiTab-root': {
+              minHeight: 38,
+              py: 0.5,
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              textTransform: 'none',
+            },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <AutoAwesomeIcon sx={{ color: '#2563eb' }} />
-            <Box>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Auto Detect Language
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Speak any Indian language — Swaranidhi automatically identifies what you speak
-              </Typography>
-            </Box>
-          </Box>
-          {inputLanguage === 'auto' && <CheckCircleIcon color="primary" fontSize="small" />}
-        </Paper>
+          <Tab label="All (23)" value="ALL" />
+          <Tab label="South" value="South" />
+          <Tab label="North / Central" value="North" />
+          <Tab label="West" value="West" />
+          <Tab label="East" value="East" />
+          <Tab label="North-East" value="North-East" />
+        </Tabs>
 
         {/* Grid of Languages */}
         <Box sx={{ maxHeight: 380, overflowY: 'auto', pr: 0.5 }}>
           <Grid container spacing={1.5}>
             {filteredLanguages.map((lang) => {
               const selected = isCurrentLanguage(lang);
+              const voiceCap = getVoiceCapability(lang);
               return (
                 <Grid item xs={12} sm={6} md={4} key={lang.code}>
                   <Paper
@@ -198,51 +230,55 @@ const LanguageSelectorModal = ({ open, onClose }) => {
                           {lang.nativeName}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
-                          {lang.name} • {lang.script}
+                          {lang.name} • {lang.script} ({lang.locale})
                         </Typography>
                       </Box>
                       {selected && <CheckCircleIcon color="success" fontSize="small" />}
                     </Box>
 
-                    {/* Capability Badges (Section 44 - Transparent) */}
+                    {/* Capability Badges (Step 13 - Accurate Capabilities) */}
                     <Box sx={{ display: 'flex', gap: 0.6, mt: 1.2, flexWrap: 'wrap' }}>
-                      {lang.speechSupported ? (
+                      {/* Text Support */}
+                      <Chip
+                        icon={<TextSnippetIcon sx={{ fontSize: '12px !important' }} />}
+                        label="✓ Text"
+                        size="small"
+                        color="default"
+                        variant="outlined"
+                        sx={{ height: 20, fontSize: '0.68rem' }}
+                      />
+
+                      {/* Voice Support */}
+                      {voiceCap.supported ? (
                         <Chip
                           icon={<MicIcon sx={{ fontSize: '12px !important' }} />}
-                          label="Voice"
+                          label={voiceCap.label}
                           size="small"
-                          color="success"
+                          color={voiceCap.color}
                           variant="outlined"
                           sx={{ height: 20, fontSize: '0.68rem' }}
                         />
                       ) : (
-                        <Tooltip title="Voice support for this language is coming soon. Text understanding is fully supported.">
+                        <Tooltip title={voiceCap.tooltip || ''}>
                           <Chip
-                            icon={<TextSnippetIcon sx={{ fontSize: '12px !important' }} />}
-                            label="Text Only"
+                            icon={<WarningAmberIcon sx={{ fontSize: '12px !important', color: '#d97706' }} />}
+                            label={voiceCap.label}
                             size="small"
                             variant="outlined"
-                            sx={{ height: 20, fontSize: '0.68rem', color: '#64748b' }}
+                            sx={{ height: 20, fontSize: '0.68rem', color: '#b45309', borderColor: '#fde68a', bgcolor: '#fffbeb' }}
                           />
                         </Tooltip>
                       )}
 
+                      {/* Audio Reply */}
                       {lang.ttsSupported && (
                         <Chip
                           icon={<VolumeUpIcon sx={{ fontSize: '12px !important' }} />}
-                          label="Audio Reply"
+                          label="✓ Audio"
                           size="small"
                           color="primary"
                           variant="outlined"
                           sx={{ height: 20, fontSize: '0.68rem' }}
-                        />
-                      )}
-
-                      {lang.status === 'COMING_SOON' && (
-                        <Chip
-                          label="Coming Soon"
-                          size="small"
-                          sx={{ height: 20, fontSize: '0.65rem', bgcolor: '#fef3c7', color: '#92400e' }}
                         />
                       )}
                     </Box>
@@ -256,9 +292,9 @@ const LanguageSelectorModal = ({ open, onClose }) => {
 
       <DialogActions sx={{ px: 3, py: 1.5, justifyContent: 'space-between' }}>
         <Typography variant="caption" color="text.secondary">
-          Selected: <strong>{uiLanguage.toUpperCase()}</strong> • Understands all 22 Eighth Schedule Indian Languages
+          Active: <strong>{selectedLanguage.toUpperCase()} ({selectedLocale})</strong> • Understands all 22 Eighth Schedule Indian Languages
         </Typography>
-        <Button onClick={onClose} variant="contained" size="small">
+        <Button onClick={onClose} variant="contained" size="small" sx={{ textTransform: 'none' }}>
           Done
         </Button>
       </DialogActions>

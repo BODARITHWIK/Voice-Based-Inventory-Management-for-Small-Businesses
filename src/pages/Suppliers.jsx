@@ -66,13 +66,13 @@ const Suppliers = ({ showToast }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) {
-      showToast?.('Please provide supplier name and phone.', 'warning');
+      showToast?.(t('suppliers.provideNamePhone'), 'warning');
       return;
     }
 
     try {
       await createSupplier(formData);
-      showToast?.('Supplier saved successfully.', 'success');
+      showToast?.(t('suppliers.supplierSaved'), 'success');
       setOpenModal(false);
       setFormData(initialSupplierForm);
       loadSuppliers();
@@ -160,7 +160,7 @@ const Suppliers = ({ showToast }) => {
                   <TableCell>
                     <Chip
                       size="small"
-                      label={row.status}
+                      label={row.status === 'Active' ? (t('suppliers.active') || 'Active') : (t('suppliers.inactive') || row.status)}
                       sx={{
                         backgroundColor: '#ecfdf5',
                         color: '#065f46',
@@ -171,7 +171,7 @@ const Suppliers = ({ showToast }) => {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Edit Supplier">
+                    <Tooltip title={t('suppliers.editSupplier')}>
                       <IconButton size="small" onClick={() => showToast?.(`Editing ${row.name}`, 'info')}>
                         <EditIcon fontSize="small" sx={{ color: '#2563eb' }} />
                       </IconButton>
@@ -197,7 +197,7 @@ const Suppliers = ({ showToast }) => {
             {t('suppliers.addSupplierBtn')}
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748b' }}>
-            Save wholesale distributor contact and mandi details.
+            {t('suppliers.subtitle')}
           </Typography>
         </DialogTitle>
         <Divider />
@@ -228,7 +228,7 @@ const Suppliers = ({ showToast }) => {
 
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Phone Number"
+                  label={t('customers.phone')}
                   required
                   fullWidth
                   placeholder="+91 98480 12345"
@@ -239,7 +239,7 @@ const Suppliers = ({ showToast }) => {
 
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Email"
+                  label={t('common.email') || 'Email'}
                   type="email"
                   fullWidth
                   placeholder="orders@supplier.in"
@@ -250,7 +250,7 @@ const Suppliers = ({ showToast }) => {
 
               <Grid item xs={12}>
                 <TextField
-                  label="Address / Mandi Location"
+                  label={t('suppliers.location')}
                   fullWidth
                   placeholder="APMC Market Yard, Guntur, AP"
                   value={formData.address}
@@ -260,7 +260,7 @@ const Suppliers = ({ showToast }) => {
 
               <Grid item xs={12}>
                 <TextField
-                  label="GST Number"
+                  label={t('common.gstNumber') || 'GST Number'}
                   fullWidth
                   placeholder="37AAAAA0000A1Z5"
                   value={formData.gstNumber}

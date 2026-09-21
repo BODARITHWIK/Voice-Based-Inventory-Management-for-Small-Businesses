@@ -15,8 +15,11 @@ import {
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import TuneIcon from '@mui/icons-material/Tune';
+import { useLanguage } from '../context/LanguageContext';
+import { getLocalizedProduct, getLocalizedDateString } from '../utils/productLocalization';
 
 const TransactionTable = ({ transactions = [] }) => {
+  const { t, selectedLanguage } = useLanguage();
   const getTypeBadge = (type) => {
     switch (type) {
       case 'Sale':
@@ -24,7 +27,7 @@ const TransactionTable = ({ transactions = [] }) => {
           <Chip
             size="small"
             icon={<ArrowUpwardIcon sx={{ fontSize: '13px !important' }} />}
-            label="Sale"
+            label={t('nav.sales') || 'Sale'}
             sx={{
               backgroundColor: '#ecfdf5',
               color: '#065f46',
@@ -39,7 +42,7 @@ const TransactionTable = ({ transactions = [] }) => {
           <Chip
             size="small"
             icon={<ArrowDownwardIcon sx={{ fontSize: '13px !important' }} />}
-            label="Purchase"
+            label={t('nav.purchases') || 'Purchase'}
             sx={{
               backgroundColor: '#eff6ff',
               color: '#1d4ed8',
@@ -54,7 +57,7 @@ const TransactionTable = ({ transactions = [] }) => {
           <Chip
             size="small"
             icon={<TuneIcon sx={{ fontSize: '13px !important' }} />}
-            label="Adjustment"
+            label={t('common.actions') || 'Adjustment'}
             sx={{
               backgroundColor: '#fffbeb',
               color: '#b45309',
@@ -74,13 +77,13 @@ const TransactionTable = ({ transactions = [] }) => {
       <Table sx={{ minWidth: 650 }}>
         <TableHead>
           <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Txn ID</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Product</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Type</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Quantity</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Amount</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Date</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Status</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>{t('sales.invoice') || 'Txn ID'}</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>{t('products.item') || 'Product'}</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>{t('confirm.action') || 'Type'}</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>{t('confirm.quantity') || 'Quantity'}</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>{t('confirm.amount') || 'Amount'}</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>{t('sales.date') || 'Date'}</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>{t('common.status') || 'Status'}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -88,7 +91,7 @@ const TransactionTable = ({ transactions = [] }) => {
             <TableRow>
               <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                 <Typography variant="body2" sx={{ color: '#64748b' }}>
-                  No recent transactions recorded.
+                  {t('dashboard.recentActivitySub') || 'No recent transactions recorded.'}
                 </Typography>
               </TableCell>
             </TableRow>
@@ -106,7 +109,14 @@ const TransactionTable = ({ transactions = [] }) => {
                   {row.id}
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>
-                  {row.product}
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#0f172a' }}>
+                    {getLocalizedProduct(row.product, selectedLanguage)}
+                  </Typography>
+                  {selectedLanguage !== 'en' && row.product && getLocalizedProduct(row.product, selectedLanguage) !== row.product && (
+                    <Typography variant="caption" sx={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>
+                      {row.product}
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell>{getTypeBadge(row.type)}</TableCell>
                 <TableCell>
@@ -123,11 +133,13 @@ const TransactionTable = ({ transactions = [] }) => {
                 <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>
                   {row.amount}
                 </TableCell>
-                <TableCell sx={{ color: '#64748b' }}>{row.date}</TableCell>
+                <TableCell sx={{ color: '#64748b' }}>
+                  {getLocalizedDateString(row.date, selectedLanguage)}
+                </TableCell>
                 <TableCell>
                   <Chip
                     size="small"
-                    label={row.status}
+                    label={row.status === 'Completed' ? (t('sales.completed') || row.status) : row.status}
                     sx={{
                       backgroundColor: row.status === 'Completed' ? '#f0fdf4' : '#f8fafc',
                       color: row.status === 'Completed' ? '#166534' : '#475569',

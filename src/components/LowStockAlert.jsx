@@ -18,10 +18,11 @@ import ErrorOutlinedIcon from '@mui/icons-material/ErrorOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { getLocalizedProduct } from '../utils/productLocalization';
 
 const LowStockAlert = ({ alerts = [], onRestockClick }) => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, selectedLanguage } = useLanguage();
 
   return (
     <Card
@@ -107,9 +108,16 @@ const LowStockAlert = ({ alerts = [], onRestockClick }) => {
                           ) : (
                             <WarningAmberIcon sx={{ fontSize: 16, color: '#d97706' }} />
                           )}
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#0f172a' }}>
-                            {item.product}
-                          </Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#0f172a' }}>
+                              {getLocalizedProduct(item.product, selectedLanguage)}
+                            </Typography>
+                            {selectedLanguage !== 'en' && item.product && getLocalizedProduct(item.product, selectedLanguage) !== item.product && (
+                              <Typography variant="caption" sx={{ color: '#64748b', display: 'block', fontSize: '0.7rem' }}>
+                                {item.product}
+                              </Typography>
+                            )}
+                          </Box>
                         </Stack>
                         <Typography variant="caption" sx={{ color: '#64748b', ml: 3 }}>
                           Threshold: {item.minStock}

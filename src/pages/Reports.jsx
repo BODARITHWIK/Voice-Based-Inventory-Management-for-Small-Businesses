@@ -66,12 +66,22 @@ const Reports = ({ showToast }) => {
     }
   };
 
+  const getDateRangeLabel = (range) => {
+    switch (range) {
+      case 'Today': return t('reports.today');
+      case 'This Week': return t('reports.thisWeek');
+      case 'This Month': return t('reports.thisMonth');
+      case 'Custom Range': return t('reports.customRange');
+      default: return range;
+    }
+  };
+
   const handleExportCSV = async () => {
     try {
       await exportSalesCsv();
-      showToast?.(`✅ Downloaded ${dateRange} shop sales CSV file.`, 'success');
+      showToast?.(`✅ ${t('reports.exportCsv')} (${getDateRangeLabel(dateRange)})`, 'success');
     } catch (e) {
-      showToast?.('Could not download CSV.', 'error');
+      showToast?.(t('toast.errorGeneric'), 'error');
     }
   };
 
@@ -84,7 +94,7 @@ const Reports = ({ showToast }) => {
       id: 'sales',
       title: t('reports.salesReport'),
       val: reportData?.stats?.salesSummary?.totalRevenue || '₹2,48,600',
-      sub: `${reportData?.stats?.salesSummary?.orderCount || 1420} bills`,
+      sub: `${reportData?.stats?.salesSummary?.orderCount || 1420} ${t('sales.billsCount')}`,
       icon: <TrendingUpIcon />,
       color: '#059669',
       bgColor: '#ecfdf5',
@@ -93,7 +103,7 @@ const Reports = ({ showToast }) => {
       id: 'purchases',
       title: t('reports.purchaseReport'),
       val: reportData?.stats?.purchaseSummary?.totalPurchases || '₹1,85,200',
-      sub: `${reportData?.stats?.purchaseSummary?.ordersPlaced || 48} supplier orders`,
+      sub: `${reportData?.stats?.purchaseSummary?.ordersPlaced || 48} ${t('purchases.title')}`,
       icon: <ShoppingBagIcon />,
       color: '#2563eb',
       bgColor: '#eff6ff',
@@ -102,7 +112,7 @@ const Reports = ({ showToast }) => {
       id: 'inventory',
       title: t('reports.inventoryReport'),
       val: '126 SKUs',
-      sub: '₹4,12,000 asset value',
+      sub: `₹4,12,000 ${t('reports.assetValue')}`,
       icon: <InventoryIcon />,
       color: '#0284c7',
       bgColor: '#e0f2fe',
@@ -111,7 +121,7 @@ const Reports = ({ showToast }) => {
       id: 'profit',
       title: t('reports.profitReport'),
       val: reportData?.stats?.profitSummary?.grossProfit || '₹63,400',
-      sub: `Margin: ${reportData?.stats?.profitSummary?.profitMargin || '25.5%'}`,
+      sub: `${t('reports.margin')}: ${reportData?.stats?.profitSummary?.profitMargin || '25.5%'}`,
       icon: <AccountBalanceIcon />,
       color: '#16a34a',
       bgColor: '#dcfce7',
@@ -120,7 +130,7 @@ const Reports = ({ showToast }) => {
       id: 'lowstock',
       title: t('reports.lowStockReport'),
       val: '11 Items',
-      sub: '8 low, 3 empty',
+      sub: `8 ${t('products.runningLow')}, 3 ${t('products.outOfStock')}`,
       icon: <WarningAmberIcon />,
       color: '#d97706',
       bgColor: '#fffbeb',
@@ -135,10 +145,10 @@ const Reports = ({ showToast }) => {
         action={
           <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
             <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="range-select-label">Time Period</InputLabel>
+              <InputLabel id="range-select-label">{t('reports.timePeriod')}</InputLabel>
               <Select
                 labelId="range-select-label"
-                label="Time Period"
+                label={t('reports.timePeriod')}
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
@@ -229,7 +239,7 @@ const Reports = ({ showToast }) => {
             <CardHeader
               title={
                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                  {t('reports.salesReport')} ({dateRange})
+                  {t('reports.salesReport')} ({getDateRangeLabel(dateRange)})
                 </Typography>
               }
               subheader="Daily revenue velocity"

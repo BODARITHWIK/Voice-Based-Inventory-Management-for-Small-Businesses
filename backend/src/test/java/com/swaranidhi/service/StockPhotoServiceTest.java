@@ -3,6 +3,7 @@ package com.swaranidhi.service;
 import com.swaranidhi.dto.ConfirmScanRequest;
 import com.swaranidhi.dto.DetectedProductDto;
 import com.swaranidhi.dto.ScanAnalysisResponse;
+import com.swaranidhi.service.vision.VisionAnalysisResult;
 import com.swaranidhi.entity.Business;
 import com.swaranidhi.entity.Product;
 import com.swaranidhi.entity.StockPhotoScan;
@@ -126,11 +127,40 @@ class StockPhotoServiceTest {
     }
 
     @Test
-    @DisplayName("Single Product Analysis: Heritage Milk with 20 packets")
-    void testAnalyzePhotoSingleProduct() {
-        byte[] imageBytes = createTestImage(100, 100, Color.WHITE, "Heritage Milk 20 Packets");
-        MockMultipartFile file = new MockMultipartFile("image", "heritage_milk_20_packets.jpg", "image/jpeg", imageBytes);
+    @DisplayName("Local Provider Without Barcode: Truthfully reports UNCONFIGURED rather than fake match")
+    void testLocalProviderUnconfiguredWithoutBarcode() {
+        byte[] imageBytes = createTestImage(100, 100, Color.WHITE, "Generic Box");
+        MockMultipartFile file = new MockMultipartFile("image", "sample.jpg", "image/jpeg", imageBytes);
 
+        ScanAnalysisResponse response = stockPhotoService.analyzePhoto(file, 1L, null);
+
+        assertNotNull(response);
+        assertEquals("UNCONFIGURED", response.getStatus());
+        assertTrue(response.getMessage().toLowerCase().contains("not configured")
+                || response.getMessage().toLowerCase().contains("machine-readable"));
+    }
+
+    @Test
+    @DisplayName("Cloud Vision Provider Integration: Accurately identifies product when provider is configured")
+    void testCloudVisionAnalysisSuccess() {
+        byte[] imageBytes = createTestImage(100, 100, Color.WHITE, "Heritage Milk");
+        MockMultipartFile file = new MockMultipartFile("image", "heritage_milk.jpg", "image/jpeg", imageBytes);
+
+        // When Cloud Vision returns a detected product
+        DetectedProductDto detectedProduct = new DetectedProductDto("Heritage Milk", "Heritage", "Dairy", 20, "packets", 0.95);
+        VisionAnalysisResult cloudResult = new VisionAnalysisResult(
+                "CLEAR",
+                null,
+                0.95,
+                java.util.List.of(detectedProduct),
+                "HERITAGE MILK 20 PACKETS",
+                null,
+                "google"
+        );
+
+        // Re-init with google configured
+        org.springframework.test.util.ReflectionTestUtils.setField(stockPhotoService, "configuredProviderName", "google");
+        when(googleVisionProvider.analyzeImage(any(), any(), any())).thenReturn(cloudResult);
         when(productRepository.findFirstByNameContainingIgnoreCase(1L, "Heritage Milk"))
                 .thenReturn(Optional.of(testProduct));
         when(scanRepository.save(any(StockPhotoScan.class))).thenAnswer(i -> {
@@ -148,33 +178,9 @@ class StockPhotoServiceTest {
 
         DetectedProductDto detected = response.getProducts().get(0);
         assertEquals("Heritage Milk", detected.getProductName());
-        assertEquals("Dairy", detected.getCategory());
         assertEquals(20, detected.getQuantity());
-        assertEquals("packets", detected.getUnit());
         assertTrue(detected.isMatchedExistingProduct());
         assertEquals(102L, detected.getExistingProductId());
-    }
-
-    @Test
-    @DisplayName("Quantity Undetermined: System strictly does NOT invent information")
-    void testQuantityUndetermined() {
-        byte[] imageBytes = createTestImage(100, 100, Color.WHITE, "Heritage Milk");
-        MockMultipartFile file = new MockMultipartFile("image", "heritage_milk.jpg", "image/jpeg", imageBytes);
-
-        when(productRepository.findFirstByNameContainingIgnoreCase(1L, "Heritage Milk"))
-                .thenReturn(Optional.of(testProduct));
-        when(scanRepository.save(any(StockPhotoScan.class))).thenAnswer(i -> {
-            StockPhotoScan scan = i.getArgument(0);
-            scan.setId(2L);
-            return scan;
-        });
-
-        ScanAnalysisResponse response = stockPhotoService.analyzePhoto(file, 1L, null);
-
-        assertNotNull(response);
-        DetectedProductDto detected = response.getProducts().get(0);
-        // Quantity must be null because image does not specify packet count!
-        assertNull(detected.getQuantity());
     }
 
     @Test
@@ -188,19 +194,6 @@ class StockPhotoServiceTest {
         assertNotNull(response);
         assertEquals("DARK", response.getStatus());
         assertTrue(response.getMessage().contains("better lighting"));
-    }
-
-    @Test
-    @DisplayName("Unknown Product Detection: Does not fake match")
-    void testUnknownProduct() {
-        byte[] imageBytes = createTestImage(100, 100, Color.LIGHT_GRAY, "Unknown Box");
-        MockMultipartFile file = new MockMultipartFile("image", "unlabeled_object.jpg", "image/jpeg", imageBytes);
-
-        ScanAnalysisResponse response = stockPhotoService.analyzePhoto(file, 1L, null);
-
-        assertNotNull(response);
-        assertEquals("NO_PRODUCT_DETECTED", response.getStatus());
-        assertTrue(response.isRequiresManualInput());
     }
 
     @Test

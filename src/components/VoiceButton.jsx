@@ -30,36 +30,41 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VoiceWaveform from './VoiceWaveform';
 import { sendVoiceCommand, getProducts } from '../services/api';
 import { speechService } from '../services/speechService';
+import { speechRecognitionService } from '../services/speechRecognitionService';
 import { useLanguage } from '../context/LanguageContext';
 import { useSimpleMode } from '../context/SimpleModeContext';
 import { clearConversationContext } from '../services/voiceParser';
+import { INDIAN_LANGUAGES, getLanguageByCodeOrLocale, getLanguageLocale } from '../config/languages';
 
-// Rotating prompts per Section 48
-const ROTATING_HINTS = [
-  { lang: 'Telugu', hint: 'తెలుగులో మాట్లాడండి (e.g. మ్యాగీ 20 ప్యాకెట్లు యాడ్ చేయి)' },
-  { lang: 'Hindi', hint: 'हिंदी में बोलें (e.g. मैगी के 20 पैकेट स्टॉक में जोड़ो)' },
-  { lang: 'Kannada', hint: 'ಕನ್ನಡದಲ್ಲಿ ಮಾತನಾಡಿ (e.g. ಮ್ಯಾಗಿ 20 ಪ್ಯಾಕೆಟ್ ಸೇರಿಸಿ)' },
-  { lang: 'Tamil', hint: 'தமிழில் பேசுங்கள் (e.g. 20 மேகி பாக்கெட்டுகளை சேர்க்கவும்)' },
-  { lang: 'Malayalam', hint: 'മലയാളത്തിൽ സംസാരിക്കൂ (e.g. 20 പാക്കറ്റ് മാഗി ചേർക്കൂ)' },
-  { lang: 'Bengali', hint: 'বাংলায় বলুন (e.g. ম্যাগি ২০টা প্যাকেট স্টকে যোগ করো)' },
-  { lang: 'English', hint: 'Speak in English (e.g. Add 20 packets of Maggi)' },
-];
+// Dynamic prompts per configured languages
+const ROTATING_HINTS = INDIAN_LANGUAGES.map((l) => ({
+  lang: l.name,
+  locale: l.locale,
+  hint: `${l.sampleVoiceHint} (e.g. ${l.sampleCommand})`,
+}));
 
 const VoiceButton = ({
   variant = 'button', // 'button' | 'icon' | 'largeCard'
   onCommandResult,
   label = '',
   contextHint = '',
+  language = null,
+  locale = null,
 }) => {
   const {
     t,
     getSpeechLangCode,
     effectiveLang,
+    selectedLocale,
     inputLanguage,
     developerMode,
     toggleDeveloperMode,
   } = useLanguage();
   const { simpleMode, ttsEnabled, toggleTts } = useSimpleMode();
+
+  // Resolve active locale dynamically from props, inputLanguage, or selectedLocale
+  const activeLocale = locale || (language ? getLanguageLocale(language) : getSpeechLangCode());
+  const activeLangObj = getLanguageByCodeOrLocale(activeLocale);
 
   const [state, setState] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'success' | 'error'
   const [transcript, setTranscript] = useState('');
@@ -81,12 +86,9 @@ const VoiceButton = ({
   // Rotating hints ticker
   const [hintIndex, setHintIndex] = useState(0);
 
-  const recognitionRef = useRef(null);
   const transcriptRef = useRef('');
 
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) setIsSupported(false);
     getProducts().then((list) => {
       if (Array.isArray(list) && list.length > 0) setProducts(list);
     }).catch(() => {});
@@ -96,92 +98,53 @@ const VoiceButton = ({
       setHintIndex((prev) => (prev + 1) % ROTATING_HINTS.length);
     }, 4500);
 
-    return () => clearInterval(ticker);
+    return () => {
+      clearInterval(ticker);
+      speechRecognitionService.abort();
+    };
   }, []);
 
-  // Determine speech recognition language code
-  const getRecognitionLang = () => {
-    return getSpeechLangCode(inputLanguage);
-  };
-
   const startListening = async () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setIsSupported(false);
-      setFriendlyMessage("Speech recognition is not supported in this browser. Please use Chrome or Edge, or type in the box below!");
+    setFriendlyMessage('');
+    const capability = speechRecognitionService.getCapabilityForLocale(activeLocale);
+
+    if (!capability.canRecognize) {
+      setFriendlyMessage(capability.message);
       setState('error');
       return;
     }
 
-    // Step 1: Check mic stream
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((track) => track.stop());
-      } catch (permErr) {
-        console.warn('Microphone permission blocked:', permErr);
-        setFriendlyMessage(
-          "🔒 Microphone permission is blocked. Please click the lock icon 🔒 in the address bar and switch Microphone to 'Allow', then try again. Or type below!"
-        );
-        setState('error');
-        return;
-      }
-    }
-
-    // Step 2: Start speech recognition
     try {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (e) {}
-      }
-
-      const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition;
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = getRecognitionLang();
-
-      recognition.onstart = () => {
-        setState('listening');
-        setPipelineStep('listening');
-        setDetectedLangDisplay(null);
-        transcriptRef.current = '';
-        setTranscript('');
-        setFriendlyMessage('');
-      };
-
-      recognition.onresult = (event) => {
-        let currentText = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          currentText += event.results[i][0].transcript;
-        }
-        transcriptRef.current = currentText;
-        setTranscript(currentText);
-      };
-
-      recognition.onerror = (event) => {
-        console.warn('Speech error:', event.error);
-        if (event.error === 'no-speech') {
-          setFriendlyMessage("I didn't hear anything. Please tap and speak clearly!");
-          setState('idle');
-          setPipelineStep('idle');
-        } else {
-          setFriendlyMessage("I couldn't hear that clearly. Please try again or type below.");
+      speechRecognitionService.startListening({
+        locale: activeLocale,
+        onStart: (info) => {
+          setState('listening');
+          setPipelineStep('listening');
+          setDetectedLangDisplay({ name: activeLangObj.name, confidence: 95 });
+          transcriptRef.current = '';
+          setTranscript('');
+          setFriendlyMessage('');
+        },
+        onInterim: (text) => {
+          transcriptRef.current = text;
+          setTranscript(text);
+        },
+        onFinal: (finalText) => {
+          const cleanText = (finalText || transcriptRef.current).trim();
+          if (cleanText) {
+            handleProcessCommand(cleanText);
+          } else {
+            setState('idle');
+            setPipelineStep('idle');
+          }
+        },
+        onError: (err) => {
+          console.warn('Speech error:', err);
+          setFriendlyMessage(err.message || "I couldn't hear that clearly. Please try again or type below.");
           setState('error');
           setPipelineStep('idle');
-        }
-      };
-
-      recognition.onend = () => {
-        const finalText = transcriptRef.current.trim();
-        if (finalText) {
-          handleProcessCommand(finalText);
-        } else {
-          setState('idle');
-          setPipelineStep('idle');
-        }
-      };
-
-      recognition.start();
+        },
+      });
     } catch (err) {
       console.error('Speech recognition exception:', err);
       setFriendlyMessage("I couldn't understand that. Please try again.");
@@ -191,16 +154,7 @@ const VoiceButton = ({
   };
 
   const stopListening = () => {
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (e) {}
-    }
-    const finalText = transcriptRef.current.trim();
-    if (finalText) {
-      handleProcessCommand(finalText);
-    } else {
-      setState('idle');
-      setPipelineStep('idle');
-    }
+    speechRecognitionService.stopListening();
   };
 
   /**
@@ -211,10 +165,10 @@ const VoiceButton = ({
     const startTime = performance.now();
     setState('processing');
     setPipelineStep('understanding');
-    console.debug('[VoiceButton] Processing:', text);
+    console.debug(`[VoiceButton] Processing in locale ${activeLocale}:`, text);
 
     try {
-      const result = await sendVoiceCommand(text, inputLanguage, products);
+      const result = await sendVoiceCommand(text, activeLocale, products);
       const elapsed = Math.round(performance.now() - startTime);
       setLatencyMs(elapsed);
       setLastCommandResult(result);

@@ -26,8 +26,10 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Login() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { login, loading, isAuthenticated } = useAuth();
 
@@ -47,7 +49,7 @@ export default function Login() {
     setError('');
 
     if (!email.trim() || !password) {
-      setError('Please enter your email and password.');
+      setError(t('auth.fillRequired'));
       return;
     }
 
@@ -55,7 +57,7 @@ export default function Login() {
     if (res.success) {
       navigate('/dashboard');
     } else {
-      setError(res.message || 'Please check your email and password.');
+      setError(res.message || t('toast.errorGeneric'));
     }
   };
 
@@ -131,10 +133,10 @@ export default function Login() {
 
         <CardContent sx={{ p: 3.5 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, color: '#1e293b' }}>
-            Welcome back! 👋
+            {t('auth.loginTitle')} 👋
           </Typography>
           <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
-            Sign in to manage your stock, sales, and Khata ledger.
+            {t('auth.loginSubtitle')}
           </Typography>
 
           {error && (
@@ -147,7 +149,7 @@ export default function Login() {
             <Stack spacing={2.5}>
               <TextField
                 fullWidth
-                label="Email or Phone Number"
+                label={t('auth.email')}
                 placeholder="owner@kirana.com or 9876543210"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -162,7 +164,7 @@ export default function Login() {
 
               <TextField
                 fullWidth
-                label="Password"
+                label={t('auth.password')}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
@@ -201,48 +203,51 @@ export default function Login() {
                   },
                 }}
               >
-                {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Sign In to Shop'}
+                {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : t('auth.loginBtn')}
               </Button>
             </Stack>
           </form>
 
-          <Box sx={{ my: 3 }}>
-            <Divider>
-              <Typography variant="caption" sx={{ color: '#94a3b8', px: 1, fontWeight: 600 }}>
-                OR TRY DEMO
-              </Typography>
-            </Divider>
-          </Box>
+          {!import.meta.env.PROD && (
+            <>
+              <Box sx={{ my: 3 }}>
+                <Divider>
+                  <Typography variant="caption" sx={{ color: '#94a3b8', px: 1, fontWeight: 600 }}>
+                    OR TRY DEMO
+                  </Typography>
+                </Divider>
+              </Box>
 
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={handleFillDemo}
-            startIcon={<FlashOn sx={{ color: '#f59e0b' }} />}
-            sx={{
-              py: 1,
-              borderRadius: 2.5,
-              borderColor: '#cbd5e1',
-              color: '#334155',
-              fontWeight: 600,
-              textTransform: 'none',
-              '&:hover': {
-                borderColor: '#10b981',
-                bgcolor: '#f0fdf4',
-              },
-            }}
-          >
-            Fill Demo Credentials (Ramesh Kumar Kirana)
-          </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={handleFillDemo}
+                startIcon={<FlashOn sx={{ color: '#f59e0b' }} />}
+                sx={{
+                  py: 1,
+                  borderRadius: 2.5,
+                  borderColor: '#cbd5e1',
+                  color: '#334155',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  '&:hover': {
+                    borderColor: '#10b981',
+                    bgcolor: '#f0fdf4',
+                  },
+                }}
+              >
+                {t('auth.demoCredentials')}
+              </Button>
+            </>
+          )}
 
           <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Typography variant="body2" sx={{ color: '#64748b' }}>
-              Don't have a store account?{' '}
               <RouterLink
                 to="/register"
                 style={{ color: '#059669', fontWeight: 700, textDecoration: 'none' }}
               >
-                Create Account
+                {t('auth.noAccount')}
               </RouterLink>
             </Typography>
           </Box>

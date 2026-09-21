@@ -34,12 +34,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import { createProduct, createSale, getProducts } from './services/api';
 import { speechService } from './services/speechService';
+import { generateFriendlyResponse } from './services/languageService';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { SimpleModeProvider, useSimpleMode } from './context/SimpleModeContext';
 import { AuthProvider } from './context/AuthContext';
 
 function MainAppContent() {
-  const { t, getSpeechLangCode } = useLanguage();
+  const { t, getSpeechLangCode, effectiveLang } = useLanguage();
   const { simpleMode, ttsEnabled } = useSimpleMode();
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -66,7 +67,7 @@ function MainAppContent() {
 
   const handleTriggerVoiceConfirm = async (parsedData) => {
     if (!parsedData || !parsedData.intent) return;
-    const lang = parsedData.language || effectiveLang;
+    const currentLang = parsedData.language || effectiveLang || 'en';
 
     // 1. CHECK_STOCK: Informative query, answer directly without modal confirmation
     if (parsedData.intent === 'CHECK_STOCK') {
@@ -79,20 +80,14 @@ function MainAppContent() {
 
         let replyMsg;
         if (found) {
-          if (lang === 'te' || lang === 'te-en') {
-            replyMsg = `మీ దగ్గర ${found.name} ${found.stock} ${found.unit} స్టాక్ ఉంది.`;
-          } else if (lang === 'hi' || lang === 'hi-en') {
-            replyMsg = `आपके पास ${found.name} का ${found.stock} ${found.unit} स्टॉक है.`;
-          } else {
-            replyMsg = `You have ${found.stock} ${found.unit} of ${found.name} in stock.`;
-          }
+          replyMsg = generateFriendlyResponse('CHECK_STOCK', { product: `${found.name} (${found.stock} ${found.unit})` }, currentLang);
         } else {
-          replyMsg = `I checked, but couldn't find ${parsedData.product || 'item'} in your current stock.`;
+          replyMsg = `Couldn't find ${parsedData.product || 'item'} in your stock.`;
         }
 
         showToast(replyMsg, 'info');
         if (ttsEnabled) {
-          speechService.speak(replyMsg, lang);
+          speechService.speak(replyMsg, currentLang);
         }
       } catch (e) {
         showToast('Checking stock...', 'info');
@@ -102,36 +97,22 @@ function MainAppContent() {
 
     // 2. LOW_STOCK / OUT_OF_STOCK: Navigate and announce
     if (parsedData.intent === 'LOW_STOCK' || parsedData.intent === 'OUT_OF_STOCK') {
-      let msg = '';
-      if (lang === 'te' || lang === 'te-en') {
-        msg = 'ఇప్పుడు 5 ప్రొడక్ట్స్ తక్కువ స్టాక్లో ఉన్నాయి.';
-      } else if (lang === 'hi' || lang === 'hi-en') {
-        msg = 'कम स्टॉक वाले सामान दिखा रहा हूँ.';
-      } else {
-        msg = 'Showing products running low on stock.';
-      }
+      const msg = generateFriendlyResponse('LOW_STOCK', {}, currentLang);
 
       showToast(msg, 'warning');
       if (ttsEnabled) {
-        speechService.speak(msg, lang);
+        speechService.speak(msg, currentLang);
       }
       return;
     }
 
     // 3. TODAY_SUMMARY / SALES_REPORT: Announce sales total (Section 27)
     if (parsedData.intent === 'TODAY_SUMMARY' || parsedData.intent === 'SALES_REPORT') {
-      let msg = '';
-      if (lang === 'hi' || lang === 'hi-en') {
-        msg = 'आज की कुल बिक्री ₹8,450 है.';
-      } else if (lang === 'te' || lang === 'te-en') {
-        msg = 'ఈరోజు మొత్తం సేల్స్ ₹8,450.';
-      } else {
-        msg = "Today's total sales are ₹8,450 across 28 transactions.";
-      }
+      const msg = generateFriendlyResponse('TODAY_SUMMARY', {}, currentLang);
 
       showToast(msg, 'success');
       if (ttsEnabled) {
-        speechService.speak(msg, lang);
+        speechService.speak(msg, currentLang);
       }
       return;
     }
@@ -139,10 +120,10 @@ function MainAppContent() {
     // 4. CUSTOMER_KHATA: Open customer khata
     if (parsedData.intent === 'CUSTOMER_KHATA') {
       const cust = parsedData.customer || 'Customer';
-      let msg = `Showing Khata account for ${cust}.`;
+      const msg = generateFriendlyResponse('CUSTOMER_KHATA', { customer: cust }, currentLang);
       showToast(msg, 'info');
       if (ttsEnabled) {
-        speechService.speak(msg, lang);
+        speechService.speak(msg, currentLang);
       }
       return;
     }
@@ -158,7 +139,7 @@ function MainAppContent() {
 
     try {
       const { intent, product, quantity, unit, customer, amount, paymentMethod, language: cmdLang } = dataToExecute;
-      const lang = cmdLang || effectiveLang;
+      const currentLang = cmdLang || effectiveLang || 'en';
       let spokenText = '';
       let toastText = '';
 
@@ -177,14 +158,8 @@ function MainAppContent() {
           supplier: 'Wholesale Mandi',
         });
 
-        if (lang === 'te' || lang === 'te-en') {
-          spokenText = `Done! 👍 ${qty} ${u} ${product} స్టాక్లో యాడ్ అయ్యాయి.`;
-        } else if (lang === 'hi' || lang === 'hi-en') {
-          spokenText = `Done! 👍 ${product} के ${qty} ${u} स्टॉक में जोड़ दिए गए हैं.`;
-        } else {
-          spokenText = `Done! 👍 ${qty} ${u} of ${product} added to your stock.`;
-        }
-        toastText = `✅ ${qty} ${u} of ${product} added to stock!`;
+        toastText = t('toast.stockAdded', { qty, unit: u, item: product });
+        spokenText = toastText.replace(/[^\w\s\u0900-\u0D7F₹]/gi, '').trim();
       } else if (intent === 'RECORD_SALE' || intent === 'SALE') {
         const qty = quantity || 1;
         const u = unit || 'units';
@@ -198,26 +173,26 @@ function MainAppContent() {
         });
 
         if (paymentMethod === 'Credit') {
-          spokenText = `Done! ${customer || 'Customer'} ki ₹${saleAmount} khata sale record ayyindi.`;
-          toastText = `Sale recorded! ₹${saleAmount} added to ${customer || 'Customer'}'s Khata.`;
+          toastText = t('toast.khataUpdated', { amount: saleAmount, customer: customer || 'Customer' });
+          spokenText = toastText.replace(/[^\w\s\u0900-\u0D7F₹]/gi, '').trim();
         } else {
-          spokenText = `Done! 👍 Sale recorded for ${qty} ${u} of ${product}.`;
-          toastText = `Sale recorded: ${qty} ${u} of ${product}!`;
+          toastText = t('toast.saleCompleted');
+          spokenText = toastText.replace(/[^\w\s\u0900-\u0D7F₹]/gi, '').trim();
         }
       } else if (intent === 'KHATA_CREDIT') {
-        spokenText = `₹${amount || 500} added to ${customer || 'Customer'}'s Khata.`;
-        toastText = `Khata updated: ₹${amount || 500} for ${customer || 'Customer'}.`;
+        toastText = t('toast.khataUpdated', { amount: amount || 500, customer: customer || 'Customer' });
+        spokenText = toastText.replace(/[^\w\s\u0900-\u0D7F₹]/gi, '').trim();
       } else if (intent === 'REMOVE_STOCK') {
-        spokenText = `Done! ${quantity || 1} ${unit || 'units'} of ${product} removed from stock.`;
-        toastText = `Removed ${quantity || 1} ${unit || 'units'} of ${product} from stock.`;
+        toastText = t('toast.itemRemoved');
+        spokenText = toastText.replace(/[^\w\s\u0900-\u0D7F₹]/gi, '').trim();
       } else {
-        spokenText = `Action completed for ${product}.`;
-        toastText = `✅ Done! Action completed for ${product}.`;
+        toastText = `✅ ${product}`;
+        spokenText = product;
       }
 
       showToast(toastText, 'success');
       if (ttsEnabled && spokenText) {
-        speechService.speak(spokenText, lang);
+        speechService.speak(spokenText, currentLang);
       }
     } catch (err) {
       showToast(t('toast.errorGeneric'), 'error');
